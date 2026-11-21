@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Karluk MP3 Pro</string>
+    <string name="app_subtitle">Ultimate Edition</string>
+    <string name="brand_tagline">Music, the Color of Life</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_favorites">Favorites</string>
+    <string name="nav_add_files">Add Files</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Welcome to Karluk</string>
+    <string name="onboarding_perm_title">Audio Library Access</string>
+    <string name="onboarding_perm_desc">Grant audio access to automatically discover music on your device, or pick specific folders safely via Storage Access Framework.</string>
+    <string name="onboarding_grant_button">Allow Audio Access</string>
+    <string name="onboarding_pick_folder">Add Folder (SAF)</string>
+    <string name="onboarding_skip">Continue Offline</string>
+
+    <!-- Home Dashboard -->
+    <string name="home_now_playing">Now Playing</string>
+    <string name="home_no_track">No Track Selected</string>
+    <string name="home_tap_to_scan">Tap Library or Add Files to load music</string>
+    <string name="home_quick_library">Music Library</string>
+    <string name="home_quick_favorites">Favorites</string>
+    <string name="home_quick_equalizer">Equalizer</string>
+    <string name="home_quick_files">Add Files</string>
+    <string name="home_quick_history">History</string>
+    <string name="home_quick_sleep">Sleep Timer</string>
+    <string name="home_recent_tracks">Recently Played</string>
+    <string name="home_tracks_count">%1$d tracks</string>
+
+    <!-- Library Tabs & Actions -->
+    <string name="library_title">Music Library</string>
+    <string name="tab_all_songs">All Songs</string>
+    <string name="tab_albums">Albums</string>
+    <string name="tab_artists">Artists</string>
+    <string name="tab_folders">Folders</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="tab_recent">Recent</string>
+    <string name="action_play_all">Play All</string>
+    <string name="action_shuffle_all">Shuffle</string>
+    <string name="action_rescan">Rescan</string>
+    <string name="action_sort">Sort</string>
+    <string name="action_filter_format">Format</string>
+    <string name="action_select">Select</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_done">Done</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_create">Create</string>
+    <string name="action_add_to_playlist">Add to Playlist</string>
+    <string name="action_add_to_queue">Add to Queue</string>
+    <string name="action_play_next">Play Next</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_save">Save</string>
+    <string name="action_clear">Clear</string>
+    <string name="selected_count">%1$d selected</string>
+
+    <!-- Sort & Filter -->
+    <string name="sort_title">Title</string>
+    <string name="sort_artist">Artist</string>
+    <string name="sort_date_added">Date Added</string>
+    <string name="sort_duration">Duration</string>
+    <string name="filter_all_formats">All Formats</string>
+
+    <!-- Empty & Error States -->
+    <string name="empty_library_title">No Music Found</string>
+    <string name="empty_library_desc">Scan your device media or import MP3, Opus, AAC, M4A, FLAC, WAV, or OGG files from any folder.</string>
+    <string name="empty_favorites_title">No Favorites Yet</string>
+    <string name="empty_favorites_desc">Tap the heart icon on any song to save it to your favorites.</string>
+    <string name="empty_playlists_title">No Playlists Yet</string>
+    <string name="empty_playlists_desc">Create custom playlists to organize your favorite tracks.</string>
+    <string name="empty_history_title">No Playback History</string>
+    <string name="empty_history_desc">Tracks you listen to will appear here automatically.</string>
+    <string name="empty_queue_title">Queue is Empty</string>
+    <string name="empty_queue_desc">Play a song or add tracks to build your playback queue.</string>
+    <string name="permission_denied_title">Audio Permission Needed</string>
+    <string name="permission_denied_desc">Device scanning requires audio permission, or you can pick files/folders directly without permission.</string>
+    <string name="playback_error_title">Playback Error</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+
+    <!-- Now Playing & Lyrics -->
+    <string name="now_playing_title">Now Playing</string>
+    <string name="playback_speed">Speed</string>
+    <string name="lyrics_title">Lyrics</string>
+    <string name="lyrics_import_lrc">Import .LRC</string>
+    <string name="lyrics_edit">Edit Lyrics</string>
+    <string name="lyrics_empty_title">No Lyrics Available</string>
+    <string name="lyrics_empty_desc">Import a synchronized .lrc file or paste lyrics manually to follow along in real time.</string>
+    <string name="lyrics_hint">Paste [mm:ss.xx] LRC lines or plain text…</string>
+
+    <!-- Playlists & Queue -->
+    <string name="playlists_new">New Playlist</string>
+    <string name="playlists_name_hint">Playlist name</string>
+    <string name="playlists_songs_count">%1$d songs</string>
+    <string name="queue_title">Playback Queue</string>
+    <string name="queue_save_as_playlist">Save as Playlist</string>
+    <string name="queue_clear">Clear Queue</string>
+
+    <!-- Equalizer & Audio Effects -->
+    <string name="equalizer_title">Equalizer &amp; Effects</string>
+    <string name="equalizer_enable">Enable Equalizer</string>
+    <string name="equalizer_unsupported">Hardware equalizer is not available on this audio session.</string>
+    <string name="preset_flat">Flat</string>
+    <string name="preset_classical">Classical</string>
+    <string name="preset_pop">Pop</string>
+    <string name="preset_rock">Rock</string>
+    <string name="preset_jazz">Jazz</string>
+    <string name="preset_hiphop">Hip-Hop</string>
+    <string name="preset_vocal">Vocal</string>
+    <string name="preset_custom">Custom</string>
+    <string name="effect_bass_boost">Bass Boost</string>
+    <string name="effect_virtualizer">3D Virtualizer</string>
+    <string name="effect_loudness">Loudness Enhancer</string>
+    <string name="effect_balance">L / R Balance</string>
+    <string name="effect_not_supported">Not supported by device</string>
+
+    <!-- Search -->
+    <string name="search_title">Search Music</string>
+    <string name="search_hint">Search songs, artists, albums, formats…</string>
+    <string name="search_recent">Recent Searches</string>
+    <string name="search_no_results">No matching tracks found</string>
+
+    <!-- Add Files & File Manager -->
+    <string name="files_title">Add Files &amp; Folders</string>
+    <string name="files_pick_audio">Pick Audio Files</string>
+    <string name="files_pick_audio_desc">Select MP3, Opus, AAC, M4A, FLAC, WAV, OGG files</string>
+    <string name="files_pick_folder">Add Music Folder</string>
+    <string name="files_pick_folder_desc">Grant persistent access to a folder via SAF</string>
+    <string name="files_scan_device">Scan Device Media</string>
+    <string name="files_scan_device_desc">Refresh library from MediaStore</string>
+    <string name="files_added_folders">Added Folders</string>
+    <string name="files_excluded_folders">Excluded Folders</string>
+    <string name="files_supported_formats">Supported: MP3, OPUS, AAC, M4A, FLAC, WAV, OGG</string>
+    <string name="files_details">File Details</string>
+    <string name="files_exclude_folder">Exclude Folder</string>
+    <string name="files_restore_folder">Restore Folder</string>
+
+    <!-- Sleep Timer & History -->
+    <string name="sleep_timer_title">Sleep Timer</string>
+    <string name="sleep_timer_off">Timer Off</string>
+    <string name="sleep_timer_end_track">End of Current Track</string>
+    <string name="sleep_timer_minutes">%1$d min</string>
+    <string name="sleep_timer_remaining">Remaining: %1$s</string>
+    <string name="history_title">Playback History</string>
+    <string name="history_clear">Clear History</string>
+    <string name="history_plays">%1$d plays</string>
+
+    <!-- Settings, Theme Studio, Storage, About -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_theme_studio">Theme Studio</string>
+    <string name="settings_equalizer">Equalizer &amp; Audio Effects</string>
+    <string name="settings_playback">Playback</string>
+    <string name="settings_resume_playback">Resume last track on launch</string>
+    <string name="settings_gapless">Gapless playback</string>
+    <string name="settings_library">Library &amp; Auto Scan</string>
+    <string name="settings_auto_scan">Auto scan on startup</string>
+    <string name="settings_storage">Storage Information</string>
+    <string name="settings_privacy">Privacy &amp; Data</string>
+    <string name="settings_privacy_note">100% Offline-first. Your music and history never leave your device.</string>
+    <string name="settings_about">About Karluk MP3 Pro</string>
+
+    <!-- Theme Studio -->
+    <string name="theme_mode">Theme Atmosphere</string>
+    <string name="theme_dark_navy">Deep Navy</string>
+    <string name="theme_midnight_violet">Midnight Violet</string>
+    <string name="theme_ocean_blue">Royal Ocean</string>
+    <string name="theme_light_frost">Silver Frost (Light)</string>
+    <string name="theme_accent">Accent Lighting</string>
+    <string name="theme_glass_opacity">Glass Transparency</string>
+    <string name="theme_reduced_motion">Reduced Motion</string>
+    <string name="theme_low_power">Low-Power Mode (Simpler Effects)</string>
+
+    <!-- Storage & About -->
+    <string name="storage_title">Storage Information</string>
+    <string name="storage_total_tracks">Total Tracks</string>
+    <string name="storage_total_size">Library Size</string>
+    <string name="storage_cache_size">Artwork Cache</string>
+    <string name="storage_clear_cache">Clear Artwork Cache</string>
+    <string name="storage_by_format">Tracks by Format</string>
+    <string name="about_version">Version 1.0.0 — Ultimate Edition</string>
+    <string name="about_desc">Professional offline-first multilingual audio player crafted with Kotlin, Jetpack Compose, and AndroidX Media3 ExoPlayer.</string>
+</resources>

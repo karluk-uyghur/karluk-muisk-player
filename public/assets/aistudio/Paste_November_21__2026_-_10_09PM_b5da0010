@@ -1,0 +1,563 @@
+مەن بىر مۇزىكا قويغۇچ ئەپ دىتالى ياسىماقچى. بۇ مۇزىكا قويغۇچ ئىمپى3  ئوپۇس  ئائاسى  ئىم4ئا فىلاس دىگەندەك فورماتلارنى بىۋاستە ئوقۇيالىسۇن. تىلپۇندىكى ھەرقانداق ئاۋاز فورماتلىرنى تونۇيدىغان ۋە شۇلارنى قوللايدىغان بولسۇن . بۇ كۆپ بەتلىك ئالاھىدە ئەپ بولۇپ باش بەت \ياخشى كۆرگەنلىرىم \ھۆججەت قۇشۇش\تەڭشەك قاتارلىق بەتلەردىن تەركىپ تاپقان . 
+![[Karluk_MP3_Pro_Ultimate_Master_Project_Plan.docx]]![](file:///C:/Users/Administrator/AppData/Local/Temp/msohtmlclip1/01/clip_image002.jpg)
+
+**KARLUK MP3 PRO**
+
+**ULTIMATE EDITION**
+
+كۆپ تىللىق، كەسپىي دەرىجىدىكى Android مۇزىكا قويغۇچ
+
+MASTER PROJECT PLAN & DEVELOPMENT SPECIFICATION
+
+  
+
+# ھۆججەتنىڭ مەقسىتى ۋە ئىشلىتىش ئۇسۇلى
+
+بۇ ھۆججەت Karluk MP3 Pro تۈرىگە مۇناسىۋەتلىك لايىھە، ئىقتىدار، تېخنىكا، پروگرامما قۇرۇلمىسى، سىناق ۋە ئېلان قىلىش تەلەپلىرىنى بىر يەرگە توپلىغان ئاساسلىق تۈر ھۆججىتىدۇر. پروگراممېر، Android Studio گۇرۇپپىسى ياكى AI كود يازغۇچىغا بۇ ھۆججەتنى پۈتۈنلەي بېرىپ، تۈرنى مۇشۇ تەلەپ بويىچە تەرەققىي قىلدۇرۇشقا بولىدۇ.
+
+بۇ ھۆججەتتە تەلەپ قىلىنغان ئىقتىدارلارنى ھەقىقىي ئىشلەيدىغان قىلىپ ئەمەلىيلەشتۈرۈش شەرت. پەقەت كۆرۈنۈش ماكىتى، ستاتىك رەسىم ياكى بېسىلمايدىغان كۇنۇپكىلار ئاخىرقى مەھسۇلات ھېسابلانمايدۇ.
+
+# 1. تۈرنىڭ كىملىكى ۋە ئومۇمىي نىشانى
+
+|   |   |
+|---|---|
+|**تۈر خاسلىقى**|**بېكىتىلگەن قىممەت**|
+|رەسمىي نامى|Karluk MP3 Pro|
+|نەشرى|Ultimate Edition|
+|تۈر تۈرى|Native Android Offline-first Music Player|
+|ئاساسىي تىللار|ئۇيغۇرچە، ئەرەبچە، ئىنگلىزچە، تۈركچە|
+|يۆنىلىش|ئۇيغۇرچە/ئەرەبچە RTL؛ ئىنگلىزچە/تۈركچە LTR|
+|ئاساسىي لايىھە|Premium Glassmorphism + Neumorphism + Dynamic Lighting|
+|ماركا لوگوسى|ئىشلەتكۈچى تەمىنلىگەن Zafer / Karluk لوگوسى|
+|تېخنىكىلىق ئاساس|Kotlin + Jetpack Compose + AndroidX Media3|
+|ئىشلەش ھالىتى|Offline-first؛ تور مەجبۇرىي ئەمەس|
+|ئاخىرقى مەھسۇلات|Android Studio Project، Source Code، APK، سىناق دوكلاتى|
+
+ئاساسىي نىشان: مۇزىكا ھۆججەتلىرىنى تېز بايقىيالايدىغان، يۇقىرى سۈپەتلىك ئاۋاز قويىدىغان، كۆپ تىللىق، زامانىۋى كۆرۈنمە يۈزگە ئىگە، مۇقىم ۋە كېڭەيتىشكە قولايلىق Android ئەپ ياساش.
+
+# 2. ماركا كىملىكى ۋە لوگو ئىشلىتىش
+
+![](file:///C:/Users/Administrator/AppData/Local/Temp/msohtmlclip1/01/clip_image003.jpg)
+
+ئىشلەتكۈچى تەمىنلىگەن ئەسلى Karluk / Zafer لوگوسى
+
+·         ئەسلى لوگونىڭ سەنئەت شەكلى ۋە خەتلىرى ئۆزگەرتىلمەيدۇ.
+
+·         App Icon ئۈچۈن ماس چوڭلۇق، بىخەتەر بوشلۇق ۋە Android adaptive icon نۇسخىلىرى تەييارلىنىدۇ.
+
+·         Splash Screen دا لوگو مەركەزلىك كۆرسىتىلىدۇ؛ ئارتۇقچە تېكىست بىلەن تولدۇرۇلمايدۇ.
+
+·         باش بەت، About بەت ۋە زۆرۈر ماركا ئورۇنلىرىدا لوگو بىردەك ئىشلىتىلىدۇ.
+
+·         رەڭ كىملىكى: Navy Blue ئاساسىي رەڭ؛ Silver White، Cyan/Blue ۋە Violet نۇرلىرى قوشۇمچە رەڭ.
+
+# 3. لايىھە سىستېمىسى — Design System
+
+## 3.1 Visual Language
+
+|   |   |
+|---|---|
+|**تېخنىكىلىق ئاتالغۇ**|**لايىھەدىكى قوللىنىلىشى**|
+|Glassmorphism|Frosted glass، transparency، background blur، glass surface|
+|Neumorphism|Soft shadow، inner/outer shadow، raised/pressed state|
+|Dynamic Lighting|Neon glow، ambient light، gradient lighting، light reflection|
+|Motion Design|راۋان transition، micro-interaction، album/record animation|
+|Responsive UI|ئېكران چوڭلۇقى ۋە يۆنىلىشىگە ماسلىشىش|
+|Accessibility|رەڭ سېلىشتۇرمىسى، خەت چوڭلۇقى، touch target ۋە screen reader قوللاش|
+
+## 3.2 رەڭ ۋە كۆرۈنۈش ئۆلچىمى
+
+|   |   |
+|---|---|
+|**رەڭ**|**ئىشلىتىلىش ئورنى**|
+|Deep Navy|ئاساسىي ئارقا كۆرۈنۈش|
+|Royal Blue|ئاكتىپ كۇنۇپكا ۋە تاللانغان بەت|
+|Cyan|Neon highlight، playback progress، active state|
+|Violet|قوشۇمچە نۇر ۋە gradient|
+|Silver / White|خەت، چېگرا ۋە ئەينەك يورۇقلۇقى|
+|Emerald Green|مۇۋەپپەقىيەت، toggle ياكى جەزملەشتۈرۈش|
+
+·         Corner radius، spacing، typography، elevation، blur ۋە opacity Design Tokens ئارقىلىق مەركەزلىك باشقۇرۇلىدۇ.
+
+·         Blur ۋە نۇر ئۈنۈملىرى ئۈسكۈنە ئىقتىدارىغا قاراپ ئەلالاشتۇرۇلىدۇ؛ تۆۋەن ئىقتىدارلىق تېلېفوندا يېنىك fallback كۆرۈنۈش ئىشلىتىلىدۇ.
+
+·         ھەر بىر كۇنۇپكىدا Default، Pressed، Disabled، Focused ۋە Loading ھالەتلىرى ئېنىق بېكىتىلىدۇ.
+
+·         Animation باتارېيە ۋە CPU نى زۆرۈر بولمىغان دەرىجىدە ئىشلەتمەسلىكى كېرەك.
+
+# 4. بەت قۇرۇلمىسى ۋە ئىشلەتكۈچى يول باشلىشى
+
+ئەپ كۆپ بەتلىك قۇرۇلمىغا ئىگە بولىدۇ. ئاساسىي بەتلەر Bottom Navigation ياكى Navigation Drawer ئارقىلىق ئېچىلىدۇ؛ قوشۇمچە بەتلەر مۇناسىۋەتلىك بۆلەكلەردىن ئېچىلىدۇ.
+
+## 4.1 ئاساسىي بەتلەر
+
+|   |   |
+|---|---|
+|**بەت**|**مەزمۇنى ۋە مەجبۇرىي ئىقتىدارى**|
+|Splash Screen|ئەپ ئېچىلغاندا Karluk MP3 Pro لوگوسى ۋە قىسقا loading ھالىتى.|
+|Onboarding|دەسلەپكى تونۇشتۇرۇش، مۇزىكا ھۆججىتى ئىجازىتىنى چۈشەندۈرۈش.|
+|Home Dashboard|لوگو، ئىزدەش، تەڭشەك، ھازىرقى ناخشا، album artwork، playback controls ۋە تېز يوللار.|
+|Music Library|بارلىق ناخشىلار، پىلاستىنكا، ناخشىچى، فولدېر، يېڭى قوشۇلغان ۋە كۆپ قويۇلغانلار.|
+|All Songs|ناخشىلار تىزىملىكى، sort، filter، multi-select ۋە batch operations.|
+|Albums|پىلاستىنكا artwork، نامى، ناخشا سانى ۋە قويۇش.|
+|Artists|ناخشاچىلار بويىچە گۇرۇپپىلاش ۋە ئىزدەش.|
+|Folders|تېلېفوندىكى تاللانغان مۇزىكا فولدېرلىرىنى كۆرۈش.|
+|Now Playing|چوڭ artwork، track title، artist، seek bar، playback controls ۋە queue.|
+|Lyrics|LRC ياكى قولدا قوشۇلغان تېكىستنى ۋاقىتقا ماسلاشتۇرۇپ كۆرسىتىش.|
+|Playlists|يېڭى playlist قۇرۇش، ئۆزگەرتىش، ناخشا قوشۇش/چىقىرىش ۋە ئۆچۈرۈش.|
+|Favorites|ياقتۇرغان ناخشىلار، Play All، Shuffle All ۋە sort.|
+|Equalizer|چاستوتا بەلۋاغلىرى ۋە audio preset لار.|
+|Audio Effects|Bass Boost، Virtualizer، Loudness Enhancement، balance؛ ئۈسكۈنە قوللىشىغا باغلىق.|
+|Search|ناخشا، ناخشىچى، پىلاستىنكا، ھۆججەت نامى بويىچە real-time search.|
+|File Manager|ھۆججەت ئۇچۇرى، فولدېر كۆرۈش، rename/delete قاتارلىق رۇخسەتلىك مەشغۇلاتلار.|
+|Playback Queue|نۆۋەتتىكى قويۇش تەرتىپى، رەتلەش، چىقىرىش ۋە queue نى ساقلاش.|
+|History|يېقىندا قويۇلغان ۋە قويۇش تارىخى.|
+|Sleep Timer|ۋاقىت ياكى ناخشا ئاخىرلاشقاندا قويۇشنى توختىتىش.|
+|Settings|تىل، كۆرۈنۈش، ئاۋاز، playback، library، privacy ۋە general settings.|
+|Theme Studio|كېچە/كۈندۈز، accent color، transparency، background ۋە animation تەڭشىكى.|
+|Storage Information|ساقلاش بوشلۇقى، مۇزىكا سانى ۋە تەكشۈرۈش ئۇچۇرى.|
+|About|ئەپ نامى، نەشرى، لوگو، ئىجازەتنامە ۋە تۈر ئۇچۇرى.|
+
+## 4.2 باش بەتنىڭ تەپسىلىي قۇرۇلمىسى
+
+·         ئۈستى قىسمى: لوگو/ئەپ نامى، navigation menu، search ۋە settings.
+
+·         مەركىزىي قىسمى: چوڭ Album Artwork ياكى Vinyl Record Animation، ناخشا نامى، ناخشىچى ۋە metadata.
+
+·         Playback Progress: seek bar، نۆۋەتتىكى ۋاقىت، ئومۇمىي ۋاقىت ۋە drag-to-seek.
+
+·         Playback Controls: Shuffle، Previous، Play/Pause، Next ۋە Repeat.
+
+·         تېز يول كارتىلىرى: Library، Favorites، Equalizer، Folders ياكى Playlists.
+
+·         ئاستى قىسمى: Mini Player ۋە Bottom Navigation.
+
+## 4.3 Now Playing بەت تەلىپى
+
+·         Album artwork، ناخشا نامى، ناخشىچى ۋە album ئۇچۇرى.
+
+·         ئاكتىپ playback visualization؛ كۆرۈنۈش ئاۋاز سانلىق مەلۇماتىغا ماس بولمىسا ساختا دەپ كۆرسەتمەسلىك.
+
+·         Lyrics ۋە synchronized LRC display؛ تېكىست بولمىسا مۇۋاپىق empty state.
+
+·         Queue access، favorite، shuffle، repeat، seek، previous، next ۋە playback speed.
+
+## 4.4 Equalizer بەت تەلىپى
+
+دەسلەپكى UI لايىھەسىدە 5-band Equalizer نى كۆرسىتىشكە بولىدۇ؛ ئەمما ھەقىقىي چاستوتا بەلۋاغلىرى ۋە range ئۈسكۈنە/API نىڭ تەمىنلىگەن قىممەتلىرىدىن ئوقۇلىدۇ. 60 Hz، 230 Hz، 910 Hz، 3.6 kHz ۋە 14 kHz پەقەت كۆرۈنۈش لايىھەسىدىكى مىسال قىممەتلەر؛ ھەر بىر ئۈسكۈنىدە دەل مۇشۇنداق بولىدۇ دەپ كاپالەت بېرىلمەيدۇ.
+
+·         Preset: Flat، Classical، Pop، Rock، Jazz، Hip-Hop، Vocal ۋە Custom؛ قوللىنىشچان preset قىممەتلىرى AudioEffect ئىقتىدارىغا ماس بولۇشى كېرەك.
+
+·         Bass Boost، Virtualizer، Loudness Enhancement ۋە Balance قاتارلىقلار API ۋە ئۈسكۈنە قوللىشىغا ئاساسەن.
+
+·         قوللاش يوق بولسا disabled/unsupported state ۋە چۈشەندۈرۈش كۆرسىتىش.
+
+# 5. كۆپ تىللىق ۋە RTL/LTR سىستېمىسى
+
+|   |   |   |
+|---|---|---|
+|**تىل**|**Layout Direction**|**تەرجىمە كودى**|
+|ئۇيغۇرچە|RTL|values-ug|
+|ئەرەبچە|RTL|values-ar|
+|ئىنگلىزچە|LTR|values-en|
+|تۈركچە|LTR|values-tr|
+
+·         بارلىق UI تېكىستلىرى localization resource ئارقىلىق باشقۇرۇلىدۇ؛ كود ئىچىگە بىۋاسىتە يېزىلغان تىلغا باغلىق تېكىستلەرنى ئەڭ تۆۋەن چەككە چۈشۈرۈش.
+
+·         تىل ئالماشتۇرغاندا UI دەرھال يېڭىلىنىدۇ؛ زۆرۈر بولسا Activity recreation ياكى Compose configuration handling ئىشلىتىلىدۇ.
+
+·         ئۇيغۇرچە/ئەرەبچە خەتلەرنىڭ shaping، punctuation، numbers، icons ۋە mixed-direction content كۆرۈنۈشى سىناق قىلىنىدۇ.
+
+·         ناخشا نامى ۋە metadata نىڭ ئەسلى يېزىلىشى ئۆزگەرتىلمەيدۇ؛ UI يۆنىلىشى پەقەت كۆرسىتىش قاتلىمىدا باشقۇرۇلىدۇ.
+
+# 6. Playback Engine ۋە ئاۋاز سىستېمىسى
+
+ئاساسلىق ماتور AndroidX Media3 ExoPlayer بولىدۇ. Playback Engine، MediaSession، UI ۋە data layer ئايرىم مەسئۇلىيەتلەرگە ئىگە بولۇشى كېرەك.
+
+|   |   |
+|---|---|
+|**بۆلەك**|**مەسئۇلىيىتى**|
+|ExoPlayer|Audio decoding ۋە playback control.|
+|MediaSession|سىستېما، Bluetooth، headset ۋە external controller بىلەن ئالاقە.|
+|MediaSessionService|ئارقا سۇپىدا playback نى ساقلاش.|
+|Playback Controller|UI بىلەن player ئارىسىدىكى كونترول API.|
+|Queue Manager|ناخشىلارنىڭ نۆۋەت تەرتىپى، shuffle ۋە repeat.|
+|Audio Effects Manager|Equalizer ۋە قوللاشچان audio effects نى باشقۇرۇش.|
+|Notification Manager|Media notification ۋە lock-screen metadata.|
+
+## 6.1 Playback State
+
+|   |   |
+|---|---|
+|**ھالەت**|**چۈشەندۈرۈش**|
+|Idle|قويۇشقا تەييار ياكى media يوق.|
+|Buffering|سانلىق مەلۇمات تەييارلىنىۋاتىدۇ.|
+|Ready|قويغۇچ قويۇشقا تەييار.|
+|Playing|ناخشا قويۇلۇۋاتىدۇ.|
+|Paused|قويۇش ۋاقىتلىق توختىغان.|
+|Ended|ناخشا ئاخىرلاشقان.|
+|Error|قويۇش خاتالىقى؛ قايتا سىناش ۋە چۈشەندۈرۈش.|
+
+## 6.2 قوللاش نىشانى بولغان Audio Formats
+
+MP3، AAC، M4A، FLAC، WAV، OGG ۋە Opus. WMA قاتارلىق باشقا فورماتلار پەقەت مۇۋاپىق decoder ياكى قوشۇمچە library قانۇنلۇق ۋە تېخنىكىلىق جەھەتتىن ماس بولغاندا قوشۇلىدۇ. فورمات قوللاش Android نەشرى، ئۈسكۈنە decoder ى ۋە media pipeline غا باغلىق.
+
+## 6.3 ئارقا سۇپىدا قويۇش
+
+·         MediaSessionService ۋە Foreground Service نى Android نىڭ ھازىرقى قائىدىلىرىگە ماس ئىشلىتىش.
+
+·         Media notification، lock-screen controls، Bluetooth metadata ۋە headset media buttons.
+
+·         Audio Focus: باشقا ئەپ ئاۋاز قويغاندا duck/pause/resume قائىدىلىرى.
+
+·         تېلېفونغا كەلگەن چاقىرىق، audio route ئۆزگىرىشى ۋە headphone unplug ھالىتىنى باشقۇرۇش.
+
+·         ئەپ UI دىن ئايرىلغان ھالدا player service نىڭ lifecycle ىنى مۇقىم باشقۇرۇش.
+
+# 7. Music Library، Metadata ۋە File Access
+
+·         MediaStore ئارقىلىق ئۈسكۈنىدىكى audio media نى بايقاش.
+
+·         Storage Access Framework ئارقىلىق ئىشلەتكۈچى ئۆزى تاللىغان فولدېرلارغا كىرىش.
+
+·         Metadata: Title، Artist، Album، Duration، MIME Type، Artwork، File Size، Date Added، Track Number ۋە Genre.
+
+·         Album artwork نى cache قىلىش؛ ھۆججەت يولىنى بىۋاسىتە DB غا كۆچۈرۈپ قويماي، URI ۋە access persistence قائىدىلىرىنى توغرا ئىشلىتىش.
+
+·         Excluded folders، rescan، duplicate detection ۋە invalid media handling.
+
+·         ھۆججەت ئۆچۈرۈش/ئۆزگەرتىش مەشغۇلاتلىرى Android نىڭ ئىجازەت ۋە user confirmation قائىدىلىرىگە ئەمەل قىلىشى كېرەك.
+
+# 8. Database ۋە Domain Models
+
+## 8.1 ئاساسلىق سانلىق مەلۇمات مودېلى
+
+|   |   |
+|---|---|
+|**Entity**|**مەزمۇنى**|
+|SongEntity|ناخشا URI، metadata، duration، artwork، mime type.|
+|AlbumEntity|پىلاستىنكا ئۇچۇرى.|
+|ArtistEntity|ناخشاچى ئۇچۇرى.|
+|PlaylistEntity|ئىشلەتكۈچى قۇرغان playlist.|
+|PlaylistSongCrossRef|Playlist بىلەن ناخشا ئارىسىدىكى many-to-many باغلىنىش.|
+|FavoriteEntity|ياقتۇرغان ناخشىلار.|
+|HistoryEntity|يېقىندا قويۇلغان/قويۇش تارىخى.|
+|LyricsEntity|LRC ياكى تېكىست ئۇچۇرى.|
+|SearchHistoryEntity|ئىزدىگەن سۆزلەر.|
+|UserSettings|تىل، theme، playback ۋە audio تەڭشەكلىرى.|
+
+## 8.2 Song Data Model مىسالى
+
+data class Song(  
+    val id: Long,  
+    val title: String,  
+    val artist: String?,  
+    val album: String?,  
+    val duration: Long,  
+    val uri: String,  
+    val mimeType: String?,  
+    val artworkUri: String?,  
+    val fileSize: Long,  
+    val dateAdded: Long,  
+    val trackNumber: Int?,  
+    val genre: String?,  
+    val isFavorite: Boolean = false  
+)
+
+# 9. پروگرامما قۇرۇلمىسى — Project Directory
+
+KarlukMP3Pro/  
+├── app/  
+│   ├── src/main/  
+│   │   ├── AndroidManifest.xml  
+│   │   ├── java/com/karluk/mp3pro/  
+│   │   │   ├── MainActivity.kt  
+│   │   │   ├── KarlukMp3ProApp.kt  
+│   │   │   ├── core/  
+│   │   │   │   ├── common/  
+│   │   │   │   ├── designsystem/  
+│   │   │   │   ├── navigation/  
+│   │   │   │   ├── permissions/  
+│   │   │   │   └── utils/  
+│   │   │   ├── data/  
+│   │   │   │   ├── database/  
+│   │   │   │   ├── datastore/  
+│   │   │   │   ├── repository/  
+│   │   │   │   ├── media/  
+│   │   │   │   └── metadata/  
+│   │   │   ├── domain/  
+│   │   │   │   ├── model/  
+│   │   │   │   ├── repository/  
+│   │   │   │   └── usecase/  
+│   │   │   ├── playback/  
+│   │   │   │   ├── engine/  
+│   │   │   │   ├── service/  
+│   │   │   │   ├── session/  
+│   │   │   │   ├── queue/  
+│   │   │   │   ├── effects/  
+│   │   │   │   └── notification/  
+│   │   │   ├── feature/  
+│   │   │   │   ├── home/  
+│   │   │   │   ├── library/  
+│   │   │   │   ├── albums/  
+│   │   │   │   ├── artists/  
+│   │   │   │   ├── folders/  
+│   │   │   │   ├── nowplaying/  
+│   │   │   │   ├── lyrics/  
+│   │   │   │   ├── playlists/  
+│   │   │   │   ├── favorites/  
+│   │   │   │   ├── equalizer/  
+│   │   │   │   ├── search/  
+│   │   │   │   ├── filemanager/  
+│   │   │   │   ├── history/  
+│   │   │   │   ├── sleeptimer/  
+│   │   │   │   ├── settings/  
+│   │   │   │   └── themestudio/  
+│   │   │   ├── localization/  
+│   │   │   └── di/  
+│   │   └── res/  
+│   │       ├── drawable/  
+│   │       ├── mipmap/  
+│   │       ├── font/  
+│   │       ├── values/  
+│   │       ├── values-ar/  
+│   │       ├── values-en/  
+│   │       ├── values-tr/  
+│   │       └── values-ug/  
+│   ├── src/test/  
+│   └── src/androidTest/  
+├── gradle/  
+├── build.gradle.kts  
+├── settings.gradle.kts  
+├── gradle.properties  
+└── README.md
+
+بۇ دەسلەپكى logical package structure. تۈرنىڭ چوڭلۇقى ۋە build ۋاقتىغا ئاساسەن core، data، domain، playback ۋە feature لارنى ئايرىم Gradle modules قىلىشقا بولىدۇ. بارلىق بۆلەكلەرنى بىرلا Kotlin ھۆججىتىگە يىغىشقا بولمايدۇ.
+
+# 10. Architecture Pattern ۋە Data Flow
+
+|   |   |
+|---|---|
+|**Layer**|**مەسئۇلىيىتى**|
+|Presentation|Compose UI، ViewModel، UI State ۋە event handling.|
+|Domain|Business rules، use cases ۋە domain models.|
+|Data|Repository implementations، Room، DataStore، MediaStore.|
+|Playback|ExoPlayer، MediaSession، queue ۋە audio effects.|
+|System Integration|Permissions، notification، audio focus، Bluetooth ۋە Android services.|
+
+MVVM + Clean Architecture قوللىنىلىدۇ. UI ViewModel دىن StateFlow ئارقىلىق state تاپشۇرۇۋالىدۇ؛ UI event لار ViewModel ياكى use case ئارقىلىق domain/data layer غا يوللىنىدۇ. Playback نىڭ single source of truth ى player/service layer بولىدۇ.
+
+# 11. تەۋسىيە قىلىنىدىغان تېخنىكا ۋە كۈتۈپخانىلار
+
+|   |   |
+|---|---|
+|**تېخنىكا**|**مەقسىتى**|
+|Kotlin|ئاساسىي پروگرامما تىلى.|
+|Jetpack Compose|Native declarative UI.|
+|Material 3|ئاساسىي UI semantics ۋە components.|
+|AndroidX Media3 ExoPlayer|Audio playback engine.|
+|Media3 Session|Media session ۋە background controls.|
+|Room|Local relational database.|
+|DataStore|Preferences ۋە user settings.|
+|Hilt|Dependency Injection.|
+|Kotlin Coroutines / Flow|Asynchronous ۋە reactive data streams.|
+|Navigation Compose|بەتلەر ئارىسىدىكى navigation.|
+|Coil|Album artwork image loading/cache.|
+|WorkManager|قايتا سىناشقا بولىدىغان پىلانلىق background tasks.|
+|JUnit / Compose UI Test|Unit ۋە UI testing.|
+
+بارلىق dependencies ئۈچۈن Gradle Version Catalog ئىشلىتىش؛ تۈر قۇرۇلغان ۋاقىتتا ئۆزئارا ماس كېلىدىغان مۇقىم نەشرلەرنى تاللاش؛ نەشر نومۇرلىرىنى دەلىللىمەي قولدىن پەرەز قىلىپ يېزىپ قويماسلىق.
+
+# 12. Android Permissions ۋە OS Integration
+
+·         Android 13+ دا READ_MEDIA_AUDIO نى مۇۋاپىق ئىشلىتىش.
+
+·         كونا Android نەشرلىرىدە مۇناسىپ legacy storage permission نى SDK ۋە targetSdk قائىدىسىگە ئاساسەن ئىشلىتىش.
+
+·         ھۆججەت ياكى فولدېر تاللاش ئۈچۈن Storage Access Framework نى ئالدىنقى تاللاش قىلىش.
+
+·         Foreground media playback service ۋە نىشان Android نەشرىگە ماس FOREGROUND_SERVICE_MEDIA_PLAYBACK declaration.
+
+·         POST_NOTIFICATIONS نى Android نەشرى ۋە notification ئېھتىياجىغا ئاساسەن تەلەپ قىلىش.
+
+·         ئىجازەت رەت قىلىنسا چۈشەندۈرۈش، قايتا تەلەپ قىلىش ياكى SAF ئارقىلىق باشقا يول كۆرسىتىش.
+
+·         Audio Focus، audio route، Bluetooth ۋە headset events نى باشقۇرۇش.
+
+Android نىڭ API ۋە targetSdk قائىدىلىرى ئۆزگىرىدىغان بولغاچقا، manifest ۋە permission flow نى ئېلان قىلىشتىن بۇرۇن رەسمىي Android Developer Documentation بىلەن قايتا دەلىللەش شەرت.
+
+# 13. Settings ۋە خاسلاشتۇرۇش
+
+|   |   |
+|---|---|
+|**گۇرۇپپا**|**تەڭشەكلەر**|
+|Appearance|Light/Dark/Auto، accent color، transparency، background، animation، font scale.|
+|Language|ئۇيغۇرچە، ئەرەبچە، ئىنگلىزچە، تۈركچە.|
+|Audio|Audio output، audio focus، equalizer، supported effects، balance.|
+|Playback|Resume playback، repeat، shuffle، gapless، crossfade، speed، sleep timer.|
+|Library|Automatic scan، excluded folders، supported formats، artwork handling.|
+|Notifications|Media notification ۋە زۆرۈر ئۇقتۇرۇش تەڭشەكلىرى.|
+|Privacy|Local-only data، permission overview، clear history.|
+|Storage|Music count، cache size، database/storage information.|
+|About|App version، logo، legal notices ۋە support information.|
+
+# 14. بىخەتەرلىك ۋە شەخسىي مەخپىيەتلىك
+
+·         Offline-first؛ مۇزىكا ھۆججەتلىرىنى مەجبۇرىي server ياكى cloud قا يوللىماسلىق.
+
+·         ئەڭ ئاز ئىجازەت پىرىنسىپى (Principle of Least Privilege).
+
+·         ئابونت تاللىمىغان فولدېر ياكى شەخسىي ھۆججەتلەرگە رۇخسەتسىز كىرمەسلىك.
+
+·         تارىخ ۋە تەڭشەكلەرنى يەرلىك ساقلاش؛ clear data/clear history تاللانمىلىرىنى تەمىنلەش.
+
+·         Crash logs ياكى analytics قوشۇلسا، شەخسىي مەخپىيەتلىككە ماس، ئېنىق ۋە ئىختىيارىي بولۇشى.
+
+·         مەجبۇرىي account، registration ياكى paid subscription تەلەپ قىلماسلىق.
+
+# 15. Performance ۋە Reliability
+
+·         Lazy loading ۋە paging ئارقىلىق چوڭ مۇزىكا كۈتۈپخانىسىنى باشقۇرۇش.
+
+·         Artwork thumbnail cache ۋە memory-aware image loading.
+
+·         Compose recomposition نى ئازايتىش؛ heavy blur/animation نى ئەلالاشتۇرۇش.
+
+·         Room query ۋە indexing نى مۇۋاپىق لايىھەلەش.
+
+·         Background scan نى UI thread دىن ئايرىش.
+
+·         Playback service lifecycle، process recreation ۋە error recovery نى سىناش.
+
+·         تۆۋەن ئىقتىدارلىق ئۈسكۈنىدە animation/blur quality نى تۆۋەنلىتىش.
+
+# 16. سىناق پىلانى — Quality Assurance
+
+|   |   |
+|---|---|
+|**سىناق تۈرى**|**تەكشۈرۈلىدىغان ئىشلار**|
+|Unit Tests|Use cases، ViewModels، repository logic، queue logic.|
+|Database Tests|Room relations، migrations، playlist/favorite persistence.|
+|Playback Tests|Play/pause/seek/next/repeat/shuffle، error recovery.|
+|Service Tests|Background playback، notification، MediaSession.|
+|UI Tests|Navigation، controls، empty/loading/error states.|
+|Localization Tests|Uyghur/Arabic RTL، English/Turkish LTR، mixed text.|
+|Device Tests|كىچىك/چوڭ ئېكران، ئوخشىمىغان Android نەشرى.|
+|Performance Tests|Startup، scrolling، memory، battery ۋە artwork loading.|
+|Permission Tests|Permission granted/denied/revoked، SAF access.|
+
+# 17. تەرەققىيات باسقۇچلىرى ۋە نەتىجە
+
+|   |   |   |
+|---|---|---|
+|**باسقۇچ**|**خىزمەت**|**قوبۇل قىلىش نەتىجىسى**|
+|1 — Foundation|Project setup، Gradle، app theme، architecture skeleton.|Build بولىدىغان قۇرۇق project.|
+|2 — Brand & Design|Logo، app icon، splash، glass components، design tokens.|لايىھە سىستېمىسى ۋە Home UI.|
+|3 — Navigation|بارلىق بەتلەر، navigation، UI state.|بەتلەرنىڭ توغرا ئېچىلىشى.|
+|4 — Library|MediaStore، SAF، scanner، metadata، artwork.|ھەقىقىي مۇزىكا كۈتۈپخانىسى.|
+|5 — Playback|Media3، queue، controls، state flow.|ناخشىلارنىڭ ھەقىقىي قويۇلۇشى.|
+|6 — Background|MediaSessionService، notification، audio focus.|ئارقا سۇپىدا ۋە lock screen دا قويۇش.|
+|7 — Persistence|Room، DataStore، playlist، favorites، history.|سانلىق مەلۇماتلارنىڭ ساقلىنىشى.|
+|8 — Audio Tools|Equalizer، supported effects، sleep timer.|ھەقىقىي ئىشلەيدىغان ئاۋاز تەڭشىكى.|
+|9 — Localization|4 تىل، RTL/LTR، layout tests.|كۆپ تىللىق UI.|
+|10 — Advanced|Lyrics، search، file manager، theme studio.|ئىلغار بەتلەرنىڭ تاماملىنىشى.|
+|11 — QA|Unit، UI، device، performance ۋە security tests.|سىناق دوكلاتى ۋە خاتالىق تۈزىتىش.|
+|12 — Release|Signing، APK، README، release notes.|قاچىلىغىلى بولىدىغان APK ۋە source project.|
+
+# 18. ئاخىرقى تاپشۇرۇش ماتېرىياللىرى
+
+·         تولۇق Android Studio Project ۋە Source Code.
+
+·         Debug APK ۋە ئىمزالانغان Release APK.
+
+·         Karluk MP3 Pro App Icon، adaptive icon ۋە Splash Screen.
+
+·         تۆت تىللىق localization resources.
+
+·         بارلىق بەتلەرنىڭ ھەقىقىي ئىشلەيدىغان ئىقتىدارلىرى.
+
+·         README، build instructions ۋە dependency/version information.
+
+·         Test report، known limitations ۋە release notes.
+
+·         ئەگەر بىر ئىقتىدار ئۈسكۈنە/API تەرىپىدىن قوللانمىسا، بۇ چەكلىمە ھۆججەتتە ئېنىق يېزىلىشى.
+
+# 19. قوبۇل قىلىش ئۆلچىمى — Definition of Done
+
+·         ☐ ئەپ Android Studio دا مۇۋەپپەقىيەتلىك build بولىدۇ.
+
+·         ☐ APK قوللايدىغان Android ئۈسكۈنىسىگە قاچىلىنىدۇ ۋە ئېچىلىدۇ.
+
+·         ☐ لوگو ۋە Karluk MP3 Pro ماركا نامى توغرا ئىشلىتىلىدۇ.
+
+·         ☐ بارلىق ئېلان قىلىنغان بەتلەر ئېچىلىدۇ؛ navigation خاتالىقى يوق.
+
+·         ☐ MediaStore/SAF ئارقىلىق مۇزىكا ھۆججەتلىرى بايقىلىدۇ.
+
+·         ☐ Playback controls ھەقىقىي player نى كونترول قىلىدۇ.
+
+·         ☐ ئارقا سۇپىدا قويۇش، notification ۋە lock-screen controls ئىشلىيدۇ.
+
+·         ☐ Playlist، Favorites، History ۋە settings قايتا ئېچىلغاندىمۇ ساقلىنىدۇ.
+
+·         ☐ Equalizer/effects قوللاشچان ئۈسكۈنىدە ھەقىقىي تەسىر كۆرسىتىدۇ؛ قوللاش يوق بولسا ئېنىق كۆرسىتىلىدۇ.
+
+·         ☐ ئۇيغۇرچە/ئەرەبچە RTL ۋە ئىنگلىزچە/تۈركچە LTR سىناق قىلىنىدۇ.
+
+·         ☐ ئاساسىي ئىقتىدارلار تورسىز ئىشلىيدۇ.
+
+·         ☐ كۆرۈنمە يۈزدە ساختا ياكى ئىشلەنمەيدىغان كۇنۇپكا قالمايدۇ.
+
+·         ☐ Critical crash ۋە data-loss خاتالىقلىرى تۈزىتىلگەن بولىدۇ.
+
+# 20. پروگراممېر ياكى AI ئۈچۈن MASTER DEVELOPMENT PROMPT
+
+PROJECT: KARLUK MP3 PRO — ULTIMATE EDITION  
+  
+Build a complete, production-quality native Android music player named Karluk MP3 Pro.  
+  
+BRAND:  
+Use the exact user-provided Karluk / Zafer logo as the official brand identity. Preserve the original artwork. Prepare appropriate Android launcher/adaptive icon assets and a splash screen. Use a navy-blue and silver-white identity with restrained cyan/blue/violet lighting.  
+  
+PLATFORM AND STACK:  
+Use Kotlin, Jetpack Compose, AndroidX Media3 ExoPlayer, MediaSessionService, Room, DataStore, Hilt, Kotlin Coroutines/Flow, Navigation Compose and Clean Architecture with MVVM. Select compatible stable dependency versions and document them.  
+  
+LANGUAGES:  
+Support Uyghur, Arabic, English and Turkish. Uyghur and Arabic must use correct RTL behavior; English and Turkish must use LTR. All interface strings must be localized resources. Test mixed-direction text, numbers, icons and punctuation.  
+  
+DESIGN:  
+Implement a premium glassmorphism interface inspired by translucent glass controls, frosted panels, soft neumorphic shadows, navy backgrounds, silver borders, blue/cyan/violet lighting, responsive layouts and smooth but battery-conscious animations. Create a consistent design system with tokens for colors, spacing, typography, radius, elevation, blur and motion. Provide reduced-motion and low-performance fallbacks.  
+  
+SCREENS:  
+Splash, onboarding, home dashboard, music library, all songs, albums, artists, folders, now playing, lyrics, playlists, favorites, equalizer, audio effects, search, file manager, playback queue, history, sleep timer, settings, theme studio, storage information and about.  
+  
+FUNCTIONAL REQUIREMENTS:  
+1. Discover local audio through MediaStore and user-selected folders through Storage Access Framework.  
+2. Read metadata and album artwork.  
+3. Implement actual playback with Media3 ExoPlayer.  
+4. Implement queue, shuffle, repeat, seek, previous, next, play/pause and playback speed.  
+5. Support background playback through MediaSessionService.  
+6. Provide media notification, lock-screen controls, Bluetooth/headset controls and audio-focus handling.  
+7. Persist playlists, favorites, history and settings using Room/DataStore.  
+8. Implement search, sorting, filtering and multi-select operations.  
+9. Implement LRC lyrics synchronization when valid lyric data exists.  
+10. Implement equalizer and supported audio effects using Android audio APIs. Detect unsupported features and never display fake success.  
+11. Implement sleep timer and mini player.  
+12. Provide robust permission-denied, missing-file, unsupported-format, empty-library and playback-error states.  
+13. Keep core functionality offline-first; no mandatory account, subscription or cloud upload.  
+  
+ARCHITECTURE:  
+Separate Presentation, Domain, Data, Playback and Android System Integration responsibilities. Use ViewModels and StateFlow for UI state. Playback service/player must be the single source of truth for playback. Keep heavy work off the main thread. Use lifecycle-aware collection, repositories, use cases, database migrations and dependency injection.  
+  
+SECURITY:  
+Request only necessary permissions. Respect Android scoped storage and SAF. Do not access user files without permission. Keep music and user data local by default.  
+  
+QUALITY:  
+Write unit, repository, database, playback, UI navigation, localization and device tests. Test on multiple Android versions and screen sizes. Optimize startup, scrolling, artwork cache, memory, CPU and battery.  
+  
+DELIVERABLES:  
+Provide a complete Android Studio project, source code, debug APK, signed release APK, app icons, splash assets, four-language resources, README, build instructions, test report and release notes.  
+  
+STRICT DEFINITION OF DONE:  
+Do not deliver a static mockup or nonfunctional prototype. Every visible control must perform its stated action. All required screens must be connected. The APK must build, install and run. Any platform limitation must be documented honestly. Do not claim a feature works unless it has been implemented and tested.
+

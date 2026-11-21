@@ -1,0 +1,6 @@
+{
+  "name": "Karluk MP3 Pro",
+  "description": "Multilingual offline-first Android music player supporting MP3, Opus, AAC, M4A, FLAC, WAV, and OGG with Media3 ExoPlayer, 5-band Equalizer, synchronized LRC lyrics, playlists, and Uyghur/Arabic RTL & English/Turkish LTR support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

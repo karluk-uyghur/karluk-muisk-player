@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Karluk MP3 Pro</string>
+    <string name="app_subtitle">ئەڭ يۇقىرى نەشرى</string>
+    <string name="brand_tagline">مۇزىكا ھاياتنىڭ رەڭگى</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">باش بەت</string>
+    <string name="nav_library">كۈتۈپخانا</string>
+    <string name="nav_favorites">ياخشى كۆرگەنلەر</string>
+    <string name="nav_add_files">ھۆججەت قوشۇش</string>
+    <string name="nav_settings">تەڭشەكلەر</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">قارلۇققا خۇش كەپسىز</string>
+    <string name="onboarding_perm_title">مۇزىكا ھۆججەتلىرىگە رۇخسەت</string>
+    <string name="onboarding_perm_desc">تېلېفونىڭىزدىكى بارلىق ناخشىلارنى ئاپتوماتىك تېپىش ئۈچۈن ئاۋاز رۇخسىتى بېرىڭ ياكى فولدېرنى بىۋاسىتە تاللاڭ.</string>
+    <string name="onboarding_grant_button">ئاۋاز رۇخسىتى بېرىش</string>
+    <string name="onboarding_pick_folder">فولدېر تاللاش (SAF)</string>
+    <string name="onboarding_skip">تورسىز داۋاملاشتۇرۇش</string>
+
+    <!-- Home Dashboard -->
+    <string name="home_now_playing">ھازىر قويۇلۇۋاتقان</string>
+    <string name="home_no_track">ناخشا تاللانمىدى</string>
+    <string name="home_tap_to_scan">مۇزىكا قوشۇش ئۈچۈن كۈتۈپخانا ياكى ھۆججەت قوشۇشنى بېسىڭ</string>
+    <string name="home_quick_library">ناخشا تىزىملىكى</string>
+    <string name="home_quick_favorites">ياقتۇرغانلار</string>
+    <string name="home_quick_equalizer">ئاۋاز تەڭشىگۈچ</string>
+    <string name="home_quick_files">ھۆججەت قوشۇش</string>
+    <string name="home_quick_history">قويۇش تارىخى</string>
+    <string name="home_quick_sleep">ئۇيقۇ ۋاقتى</string>
+    <string name="home_recent_tracks">يېقىندا قويۇلغانلار</string>
+    <string name="home_tracks_count">%1$d ناخشا</string>
+
+    <!-- Library Tabs & Actions -->
+    <string name="library_title">ناخشا كۈتۈپخانىسى</string>
+    <string name="tab_all_songs">بارلىق ناخشىلار</string>
+    <string name="tab_albums">پىلاستىنكىلار</string>
+    <string name="tab_artists">ناخشىچىلار</string>
+    <string name="tab_folders">فولدېرلار</string>
+    <string name="tab_playlists">تىزىملىكلەر</string>
+    <string name="tab_recent">يېقىنقى</string>
+    <string name="action_play_all">ھەممىنى قويۇش</string>
+    <string name="action_shuffle_all">ئارىلاش قويۇش</string>
+    <string name="action_rescan">قايتا تەكشۈرۈش</string>
+    <string name="action_sort">تەرتىپلەش</string>
+    <string name="action_filter_format">فورمات</string>
+    <string name="action_select">تاللاش</string>
+    <string name="action_cancel">بىكار قىلىش</string>
+    <string name="action_done">تامام</string>
+    <string name="action_delete">ئۆچۈرۈش</string>
+    <string name="action_rename">نام ئۆزگەرتىش</string>
+    <string name="action_create">قۇرۇش</string>
+    <string name="action_add_to_playlist">تىزىملىككە قوشۇش</string>
+    <string name="action_add_to_queue">نۆۋەتكە قوشۇش</string>
+    <string name="action_play_next">كېيىنكىسىدە قويۇش</string>
+    <string name="action_remove">چىقىرىۋېتىش</string>
+    <string name="action_retry">قايتا سىناش</string>
+    <string name="action_save">ساقلاش</string>
+    <string name="action_clear">تازىلاش</string>
+    <string name="selected_count">%1$d تاللاندى</string>
+
+    <!-- Sort & Filter -->
+    <string name="sort_title">نامى بويىچە</string>
+    <string name="sort_artist">ناخشىچى بويىچە</string>
+    <string name="sort_date_added">قوشۇلغان ۋاقتى</string>
+    <string name="sort_duration">ئۇزۇنلۇقى</string>
+    <string name="filter_all_formats">بارلىق فورماتلار</string>
+
+    <!-- Empty & Error States -->
+    <string name="empty_library_title">ناخشا تېپىلمىدى</string>
+    <string name="empty_library_desc">ئۈسكۈنىنى تەكشۈرۈڭ ياكى خالىغان فولدېردىن MP3، Opus، AAC، M4A، FLAC، WAV، OGG ھۆججەتلىرىنى قوشۇڭ.</string>
+    <string name="empty_favorites_title">ياقتۇرغان ناخشا يوق</string>
+    <string name="empty_favorites_desc">خالىغان ناخشىنى ساقلاش ئۈچۈن يۈرەك سىنبەلگىسىنى بېسىڭ.</string>
+    <string name="empty_playlists_title">تىزىملىك قۇرۇق</string>
+    <string name="empty_playlists_desc">ناخشىلىرىڭىزنى رەتلەش ئۈچۈن يېڭى تىزىملىك قۇرۇڭ.</string>
+    <string name="empty_history_title">قويۇش تارىخى يوق</string>
+    <string name="empty_history_desc">ئاڭلىغان ناخشىلىرىڭىز بۇ يەردە كۆرۈنىدۇ.</string>
+    <string name="empty_queue_title">نۆۋەت قۇرۇق</string>
+    <string name="empty_queue_desc">قويۇش نۆۋىتىنى تۈزۈش ئۈچۈن بىر ناخشا قويۇڭ.</string>
+    <string name="permission_denied_title">ئاۋاز رۇخسىتى كېرەك</string>
+    <string name="permission_denied_desc">تېلېفوننى تەكشۈرۈش ئۈچۈن رۇخسەت بېرىڭ ياكى رۇخسەتسىزلا ھۆججەت/فولدېر تاللاڭ.</string>
+    <string name="playback_error_title">قويۇش خاتالىقى</string>
+    <string name="unknown_artist">نامەلۇم ناخشىچى</string>
+    <string name="unknown_album">نامەلۇم پىلاستىنكا</string>
+
+    <!-- Now Playing & Lyrics -->
+    <string name="now_playing_title">قويۇلۇۋاتقان ناخشا</string>
+    <string name="playback_speed">سۈرئەت</string>
+    <string name="lyrics_title">ناخشا تېكىستى</string>
+    <string name="lyrics_import_lrc">.LRC كىرگۈزۈش</string>
+    <string name="lyrics_edit">تېكىست تەھرىرلەش</string>
+    <string name="lyrics_empty_title">تېكىست تېپىلمىدى</string>
+    <string name="lyrics_empty_desc">ماس قەدەملىك .lrc ھۆججىتىنى كىرگۈزۈڭ ياكى ناخشا تېكىستىنى قولدا يېزىڭ.</string>
+    <string name="lyrics_hint">[mm:ss.xx] LRC ياكى ئادەتتىكى تېكىستنى چاپلاڭ…</string>
+
+    <!-- Playlists & Queue -->
+    <string name="playlists_new">يېڭى تىزىملىك</string>
+    <string name="playlists_name_hint">تىزىملىك نامى</string>
+    <string name="playlists_songs_count">%1$d ناخشا</string>
+    <string name="queue_title">قويۇش نۆۋىتى</string>
+    <string name="queue_save_as_playlist">تىزىملىك قىلىپ ساقلاش</string>
+    <string name="queue_clear">نۆۋەتنى تازىلاش</string>
+
+    <!-- Equalizer & Audio Effects -->
+    <string name="equalizer_title">ئاۋاز تەڭشىگۈچ</string>
+    <string name="equalizer_enable">تەڭشىگۈچنى ئېچىش</string>
+    <string name="equalizer_unsupported">بۇ ئۈسكۈنىدە قاتتىق دېتال Equalizer قوللانمايدۇ.</string>
+    <string name="preset_flat">تۈز</string>
+    <string name="preset_classical">كلاسسىك</string>
+    <string name="preset_pop">پوپ</string>
+    <string name="preset_rock">روك</string>
+    <string name="preset_jazz">جاز</string>
+    <string name="preset_hiphop">خىپ-خوپ</string>
+    <string name="preset_vocal">ئاۋازلىق</string>
+    <string name="preset_custom">خاس</string>
+    <string name="effect_bass_boost">باس كۈچەيتىش</string>
+    <string name="effect_virtualizer">3D ئاۋاز</string>
+    <string name="effect_loudness">ئاۋاز يۇقىرىلىتىش</string>
+    <string name="effect_balance">سول / ئوڭ تەڭپۇڭلۇق</string>
+    <string name="effect_not_supported">ئۈسكۈنە قوللىمايدۇ</string>
+
+    <!-- Search -->
+    <string name="search_title">مۇزىكا ئىزدەش</string>
+    <string name="search_hint">ناخشا، ناخشىچى، پىلاستىنكا ياكى فورمات ئىزدەڭ…</string>
+    <string name="search_recent">يېقىنقى ئىزدەشلەر</string>
+    <string name="search_no_results">ماس ناخشا تېپىلمىدى</string>
+
+    <!-- Add Files & File Manager -->
+    <string name="files_title">ھۆججەت ۋە فولدېر قوشۇش</string>
+    <string name="files_pick_audio">ئاۋاز ھۆججىتى تاللاش</string>
+    <string name="files_pick_audio_desc">MP3، Opus، AAC، M4A، FLAC، WAV، OGG ھۆججەتلىرىنى قوشۇش</string>
+    <string name="files_pick_folder">فولدېر قوشۇش</string>
+    <string name="files_pick_folder_desc">SAF ئارقىلىق فولدېرغا مەڭگۈلۈك كىرىش رۇخسىتى بېرىش</string>
+    <string name="files_scan_device">ئۈسكۈنىنى تەكشۈرۈش</string>
+    <string name="files_scan_device_desc">MediaStore ئارقىلىق ناخشىلارنى يېڭىلاش</string>
+    <string name="files_added_folders">قوشۇلغان فولدېرلار</string>
+    <string name="files_excluded_folders">چىقىرىۋېتىلگەن فولدېرلار</string>
+    <string name="files_supported_formats">قوللايدىغانلىرى: MP3, OPUS, AAC, M4A, FLAC, WAV, OGG</string>
+    <string name="files_details">ھۆججەت تەپسىلاتى</string>
+    <string name="files_exclude_folder">فولدېرنى يوشۇرۇش</string>
+    <string name="files_restore_folder">ئەسلىگە كەلتۈرۈش</string>
+
+    <!-- Sleep Timer & History -->
+    <string name="sleep_timer_title">ئۇيقۇ ۋاقتى</string>
+    <string name="sleep_timer_off">ۋاقىت تاقالغان</string>
+    <string name="sleep_timer_end_track">مۇشۇ ناخشا تۈگىگەندە</string>
+    <string name="sleep_timer_minutes">%1$d مىنۇت</string>
+    <string name="sleep_timer_remaining">قالغان ۋاقىت: %1$s</string>
+    <string name="history_title">قويۇش تارىخى</string>
+    <string name="history_clear">تارىخنى تازىلاش</string>
+    <string name="history_plays">%1$d قېتىم</string>
+
+    <!-- Settings, Theme Studio, Storage, About -->
+    <string name="settings_title">تەڭشەكلەر</string>
+    <string name="settings_language">تىل تاللاش</string>
+    <string name="settings_theme_studio">كۆرۈنۈش ستۇدىيىسى</string>
+    <string name="settings_equalizer">ئاۋاز تەڭشىگۈچ</string>
+    <string name="settings_playback">قويۇش تەڭشىكى</string>
+    <string name="settings_resume_playback">ئېچىلغاندا ئاخىرقى ناخشىنى ئەسلىگە كەلتۈرۈش</string>
+    <string name="settings_gapless">ئۈزۈلمەس قويۇش</string>
+    <string name="settings_library">كۈتۈپخانا تەكشۈرۈش</string>
+    <string name="settings_auto_scan">ئېچىلغاندا ئاپتوماتىك تەكشۈرۈش</string>
+    <string name="settings_storage">ساقلاش ئۇچۇرى</string>
+    <string name="settings_privacy">مەخپىيەتلىك ۋە سانلىق مەلۇمات</string>
+    <string name="settings_privacy_note">100%% تورسىز ئىشلەيدۇ. مۇزىكا ۋە تارىخىڭىز ئۈسكۈنىدىن چىقمايدۇ.</string>
+    <string name="settings_about">Karluk MP3 Pro ھەققىدە</string>
+
+    <!-- Theme Studio -->
+    <string name="theme_mode">كۆرۈنۈش كەيپىياتى</string>
+    <string name="theme_dark_navy">چوڭقۇر كۆك</string>
+    <string name="theme_midnight_violet">كېچىلىك بىنەپشە</string>
+    <string name="theme_ocean_blue">شاھانە كۆك</string>
+    <string name="theme_light_frost">كۈمۈش رەڭ (يورۇق)</string>
+    <string name="theme_accent">يورۇقلۇق رەڭگى</string>
+    <string name="theme_glass_opacity">ئەينەك سۈزۈكلۈكى</string>
+    <string name="theme_reduced_motion">ھەرىكەتنى ئازايتىش</string>
+    <string name="theme_low_power">تۆۋەن سەرپىيات ھالىتى</string>
+
+    <!-- Storage & About -->
+    <string name="storage_title">ساقلاش ئۇچۇرى</string>
+    <string name="storage_total_tracks">ئومۇمىي ناخشا</string>
+    <string name="storage_total_size">ئومۇمىي سىغىمى</string>
+    <string name="storage_cache_size">رەسىم كەش سىغىمى</string>
+    <string name="storage_clear_cache">كەشنى تازىلاش</string>
+    <string name="storage_by_format">فورمات بويىچە سانى</string>
+    <string name="about_version">نەشرى 1.0.0 — Ultimate Edition</string>
+    <string name="about_desc">Kotlin، Jetpack Compose ۋە AndroidX Media3 ExoPlayer ئاساسىدا ياسالغان كۆپ تىللىق كەسپىي تورسىز مۇزىكا قويغۇچ.</string>
+</resources>
