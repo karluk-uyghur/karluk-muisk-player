@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.KarlukBackground
 import com.example.core.designsystem.KarlukTopBar
@@ -76,6 +77,7 @@ fun SearchScreen(
     val tokens = LocalKarlukTokens.current
     var query by rememberSaveable { mutableStateOf("") }
     var optionSong by remember { mutableStateOf<Song?>(null) }
+    var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
 
@@ -191,7 +193,8 @@ fun SearchScreen(
                                     onPlaySongs(results, idx)
                                 },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
-                                onMoreClick = { optionSong = song }
+                                onMoreClick = { optionSong = song },
+                                onDeleteClick = { deleteTargetSong = song }
                             )
                         }
                     }
@@ -225,5 +228,13 @@ fun SearchScreen(
 
     detailSong?.let { song ->
         SongDetailsDialog(song = song, onDismiss = { detailSong = null })
+    }
+
+    deleteTargetSong?.let { song ->
+        DeleteConfirmDialog(
+            itemTitle = song.title,
+            onConfirm = { onRemoveFromLibrary(song.id) },
+            onDismiss = { deleteTargetSong = null }
+        )
     }
 }

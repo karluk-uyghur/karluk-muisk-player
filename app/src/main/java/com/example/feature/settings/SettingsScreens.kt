@@ -17,17 +17,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -64,6 +66,7 @@ import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.domain.model.AccentOption
 import com.example.domain.model.AppLanguage
+import com.example.domain.model.PlaybackState
 import com.example.domain.model.StorageStats
 import com.example.domain.model.ThemeAtmosphere
 import com.example.domain.model.UserSettings
@@ -71,7 +74,9 @@ import com.example.domain.model.UserSettings
 @Composable
 fun SettingsScreen(
     settings: UserSettings,
+    playbackState: PlaybackState,
     onSelectLanguage: (AppLanguage) -> Unit,
+    onToggleDayNight: (Boolean) -> Unit,
     onOpenThemeStudio: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenSleepTimer: () -> Unit,
@@ -83,6 +88,7 @@ fun SettingsScreen(
     onClearHistory: () -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
+    val isNightMode = settings.themeAtmosphere != ThemeAtmosphere.SILVER_FROST
     var showLanguageDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -94,6 +100,16 @@ fun SettingsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                item {
+                    SettingsSwitchRow(
+                        icon = if (isNightMode) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                        title = stringResource(if (isNightMode) R.string.theme_night_mode else R.string.theme_day_mode),
+                        checked = isNightMode,
+                        onCheckedChange = onToggleDayNight,
+                        modifier = Modifier.testTag("settings_day_night_switch")
+                    )
+                }
+
                 item {
                     SettingsActionRow(
                         icon = Icons.Rounded.Language,
@@ -118,17 +134,25 @@ fun SettingsScreen(
                     SettingsActionRow(
                         icon = Icons.Rounded.Equalizer,
                         title = stringResource(R.string.settings_equalizer),
-                        subtitle = "5-Band EQ, Bass Boost, 3D, Balance",
+                        subtitle = stringResource(R.string.equalizer_summary),
                         onClick = onOpenEqualizer,
                         modifier = Modifier.testTag("settings_equalizer_row")
                     )
                 }
 
                 item {
+                    val sleepSubtitle = when {
+                        playbackState.sleepAfterCurrentTrack -> stringResource(R.string.sleep_timer_end_track)
+                        playbackState.sleepTimerRemainingMs > 0L -> stringResource(
+                            R.string.sleep_timer_remaining,
+                            FormatUtils.formatDuration(playbackState.sleepTimerRemainingMs)
+                        )
+                        else -> stringResource(R.string.sleep_timer_off)
+                    }
                     SettingsActionRow(
-                        icon = Icons.Rounded.Bedtime,
+                        icon = Icons.Rounded.Timer,
                         title = stringResource(R.string.sleep_timer_title),
-                        subtitle = null,
+                        subtitle = sleepSubtitle,
                         onClick = onOpenSleepTimer,
                         modifier = Modifier.testTag("settings_sleep_row")
                     )
@@ -291,10 +315,11 @@ private fun SettingsSwitchRow(
     icon: ImageVector,
     title: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val tokens = LocalKarlukTokens.current
-    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+    GlassCard(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically

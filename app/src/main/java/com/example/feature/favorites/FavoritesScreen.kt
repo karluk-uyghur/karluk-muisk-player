@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
@@ -64,6 +65,7 @@ fun FavoritesScreen(
 ) {
     val tokens = LocalKarlukTokens.current
     var optionSong by remember { mutableStateOf<Song?>(null) }
+    var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
 
@@ -138,7 +140,8 @@ fun FavoritesScreen(
                             isPlaying = playbackState.isPlaying,
                             onClick = { onPlaySongs(favoriteSongs, index) },
                             onToggleFavorite = { onToggleFavorite(song.id) },
-                            onMoreClick = { optionSong = song }
+                            onMoreClick = { optionSong = song },
+                            onDeleteClick = { deleteTargetSong = song }
                         )
                     }
                 }
@@ -171,5 +174,13 @@ fun FavoritesScreen(
 
     detailSong?.let { song ->
         SongDetailsDialog(song = song, onDismiss = { detailSong = null })
+    }
+
+    deleteTargetSong?.let { song ->
+        DeleteConfirmDialog(
+            itemTitle = song.title,
+            onConfirm = { onRemoveFromLibrary(song.id) },
+            onDismiss = { deleteTargetSong = null }
+        )
     }
 }

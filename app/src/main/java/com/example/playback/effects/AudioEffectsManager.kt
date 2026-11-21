@@ -8,99 +8,143 @@ import com.example.data.datastore.SavedEqualizerPrefs
 import com.example.domain.model.AudioBand
 import com.example.domain.model.AudioEffectsState
 import com.example.domain.model.EqualizerPreset
+import com.example.playback.audio.KarlukAudioProcessor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import java.util.Locale
 import kotlin.math.roundToInt
 
-class AudioEffectsManager {
+class AudioEffectsManager(
+    private val audioProcessor: KarlukAudioProcessor? = null
+) {
 
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
+    private var hwEqSupported = false
+    private var hwBassSupported = false
+    private var hwVirtSupported = false
+    private var hwLoudSupported = false
+
     private var currentSessionId: Int = 0
     private var lastSavedPrefs: SavedEqualizerPrefs = SavedEqualizerPrefs()
 
-    private val _state = MutableStateFlow(AudioEffectsState())
+    private val defaultBands = KarlukAudioProcessor.DEFAULT_EQ_FREQUENCIES_HZ.mapIndexed { index, hz ->
+        AudioBand(
+            index = index,
+            centerFreqHz = hz,
+            label = formatFreq(hz),
+            levelMb = 0
+        )
+    }
+
+    private val _state = MutableStateFlow(
+        AudioEffectsState(
+            isEqualizerSupported = true,
+            bands = defaultBands,
+            minLevelMb = -1500,
+            maxLevelMb = 1500,
+            isBassBoostSupported = true,
+            isVirtualizerSupported = true,
+            isLoudnessSupported = true
+        )
+    )
     val state: StateFlow<AudioEffectsState> = _state.asStateFlow()
 
     fun attachToSession(audioSessionId: Int, savedPrefs: SavedEqualizerPrefs = lastSavedPrefs) {
         lastSavedPrefs = savedPrefs
         if (audioSessionId <= 0) return
-        if (audioSessionId == currentSessionId && equalizer != null) {
+        if (audioSessionId == currentSessionId && (equalizer != null || audioProcessor != null)) {
             applySavedPrefs(savedPrefs)
             return
         }
 
-        release()
+        releaseHardwareEffects()
         currentSessionId = audioSessionId
 
-        var eqSupported = false
         val bands = mutableListOf<AudioBand>()
         var minMb: Short = -1500
         var maxMb: Short = 1500
+        hwEqSupported = false
 
         try {
             val eq = Equalizer(0, audioSessionId)
-            equalizer = eq
-            eqSupported = true
-            val range = eq.bandLevelRange
-            if (range != null && range.size >= 2) {
-                minMb = range[0]
-                maxMb = range[1]
-            }
             val count = eq.numberOfBands.toInt()
-            for (i in 0 until count) {
-                val centerHz = eq.getCenterFreq(i.toShort()) / 1000
-                val level = eq.getBandLevel(i.toShort())
-                bands.add(
-                    AudioBand(
-                        index = i,
-                        centerFreqHz = centerHz,
-                        label = formatFreq(centerHz),
-                        levelMb = level
+            if (count > 0) {
+                equalizer = eq
+                hwEqSupported = true
+                val range = eq.bandLevelRange
+                if (range != null && range.size >= 2) {
+                    minMb = range[0]
+                    maxMb = range[1]
+                }
+                for (i in 0 until count) {
+                    val centerHz = eq.getCenterFreq(i.toShort()) / 1000
+                    val level = eq.getBandLevel(i.toShort())
+                    bands.add(
+                        AudioBand(
+                            index = i,
+                            centerFreqHz = centerHz,
+                            label = formatFreq(centerHz),
+                            levelMb = level
+                        )
                     )
-                )
+                }
+            } else {
+                eq.release()
             }
         } catch (_: Exception) {
-            eqSupported = false
+            hwEqSupported = false
         }
 
-        val bassSupported = try {
+        hwBassSupported = try {
             val bb = BassBoost(0, audioSessionId)
-            bassBoost = bb
-            bb.strengthSupported
+            if (bb.strengthSupported) {
+                bassBoost = bb
+                true
+            } else {
+                bb.release()
+                false
+            }
         } catch (_: Exception) {
             false
         }
 
-        val virtSupported = try {
+        hwVirtSupported = try {
             val virt = Virtualizer(0, audioSessionId)
-            virtualizer = virt
-            virt.strengthSupported
+            if (virt.strengthSupported) {
+                virtualizer = virt
+                true
+            } else {
+                virt.release()
+                false
+            }
         } catch (_: Exception) {
             false
         }
 
-        val loudSupported = try {
+        hwLoudSupported = try {
             loudnessEnhancer = LoudnessEnhancer(audioSessionId)
             true
         } catch (_: Exception) {
             false
         }
 
+        val effectiveBands = if (hwEqSupported && bands.isNotEmpty()) bands else _state.value.bands.ifEmpty { defaultBands }
+
         _state.update {
             it.copy(
-                isEqualizerSupported = eqSupported,
-                bands = bands,
+                isEqualizerSupported = true,
+                bands = effectiveBands,
                 minLevelMb = minMb,
                 maxLevelMb = maxMb,
-                isBassBoostSupported = bassSupported,
-                isVirtualizerSupported = virtSupported,
-                isLoudnessSupported = loudSupported
+                isBassBoostSupported = true,
+                isVirtualizerSupported = true,
+                isLoudnessSupported = true
             )
         }
 
@@ -120,30 +164,37 @@ class AudioEffectsManager {
         setBassBoost(prefs.bassBoostEnabled, prefs.bassBoostStrength)
         setVirtualizer(prefs.virtualizerEnabled, prefs.virtualizerStrength)
         setLoudnessEnhancer(prefs.loudnessEnabled, prefs.loudnessGainMb)
+        setBalance(prefs.balance)
         _state.update { it.copy(activePreset = prefs.preset, balance = prefs.balance) }
     }
 
     fun setEqualizerEnabled(enabled: Boolean) {
         val eq = equalizer
-        val actuallyEnabled = if (eq != null) {
+        val actuallyEnabled = if (hwEqSupported && eq != null) {
             try {
                 eq.enabled = enabled
+                audioProcessor?.updateSoftwareEq(false, emptyList())
                 eq.enabled
             } catch (_: Exception) {
-                false
+                hwEqSupported = false
+                audioProcessor?.updateSoftwareEq(enabled, _state.value.bands.map { it.levelMb })
+                enabled
             }
-        } else false
+        } else {
+            audioProcessor?.updateSoftwareEq(enabled, _state.value.bands.map { it.levelMb })
+            enabled
+        }
 
         _state.update { it.copy(isEqualizerEnabled = actuallyEnabled) }
     }
 
     fun setBandLevel(bandIndex: Int, levelMb: Short, markCustom: Boolean = true) {
-        val eq = equalizer
         val min = _state.value.minLevelMb
         val max = _state.value.maxLevelMb
         val clamped = levelMb.coerceIn(min, max)
 
-        if (eq != null && bandIndex < _state.value.bands.size) {
+        val eq = equalizer
+        if (hwEqSupported && eq != null && bandIndex < _state.value.bands.size) {
             try {
                 eq.setBandLevel(bandIndex.toShort(), clamped)
             } catch (_: Exception) {
@@ -153,6 +204,9 @@ class AudioEffectsManager {
         _state.update { current ->
             val updatedBands = current.bands.map { band ->
                 if (band.index == bandIndex) band.copy(levelMb = clamped) else band
+            }
+            if (!hwEqSupported) {
+                audioProcessor?.updateSoftwareEq(current.isEqualizerEnabled, updatedBands.map { it.levelMb })
             }
             current.copy(
                 bands = updatedBands,
@@ -199,14 +253,20 @@ class AudioEffectsManager {
     fun setBassBoost(enabled: Boolean, strength: Int) {
         val clamped = strength.coerceIn(0, 1000)
         val bb = bassBoost
-        var actualEnabled = false
-        if (bb != null && _state.value.isBassBoostSupported) {
+        val actualEnabled = if (hwBassSupported && bb != null) {
             try {
                 bb.setStrength(clamped.toShort())
                 bb.enabled = enabled
-                actualEnabled = bb.enabled
+                audioProcessor?.updateSoftwareBass(false, 0)
+                bb.enabled
             } catch (_: Exception) {
+                hwBassSupported = false
+                audioProcessor?.updateSoftwareBass(enabled, clamped)
+                enabled
             }
+        } else {
+            audioProcessor?.updateSoftwareBass(enabled, clamped)
+            enabled
         }
         _state.update {
             it.copy(
@@ -219,14 +279,20 @@ class AudioEffectsManager {
     fun setVirtualizer(enabled: Boolean, strength: Int) {
         val clamped = strength.coerceIn(0, 1000)
         val virt = virtualizer
-        var actualEnabled = false
-        if (virt != null && _state.value.isVirtualizerSupported) {
+        val actualEnabled = if (hwVirtSupported && virt != null) {
             try {
                 virt.setStrength(clamped.toShort())
                 virt.enabled = enabled
-                actualEnabled = virt.enabled
+                audioProcessor?.updateSoftwareVirtualizer(false, 0)
+                virt.enabled
             } catch (_: Exception) {
+                hwVirtSupported = false
+                audioProcessor?.updateSoftwareVirtualizer(enabled, clamped)
+                enabled
             }
+        } else {
+            audioProcessor?.updateSoftwareVirtualizer(enabled, clamped)
+            enabled
         }
         _state.update {
             it.copy(
@@ -239,14 +305,20 @@ class AudioEffectsManager {
     fun setLoudnessEnhancer(enabled: Boolean, gainMb: Int) {
         val clamped = gainMb.coerceIn(0, 1500)
         val loud = loudnessEnhancer
-        var actualEnabled = false
-        if (loud != null && _state.value.isLoudnessSupported) {
+        val actualEnabled = if (hwLoudSupported && loud != null) {
             try {
                 loud.setTargetGain(clamped)
                 loud.enabled = enabled
-                actualEnabled = loud.enabled
+                audioProcessor?.updateSoftwareLoudness(false, 0)
+                loud.enabled
             } catch (_: Exception) {
+                hwLoudSupported = false
+                audioProcessor?.updateSoftwareLoudness(enabled, clamped)
+                enabled
             }
+        } else {
+            audioProcessor?.updateSoftwareLoudness(enabled, clamped)
+            enabled
         }
         _state.update {
             it.copy(
@@ -257,7 +329,9 @@ class AudioEffectsManager {
     }
 
     fun setBalance(balance: Float) {
-        _state.update { it.copy(balance = balance.coerceIn(-1f, 1f)) }
+        val clamped = balance.coerceIn(-1f, 1f)
+        audioProcessor?.balance = clamped
+        _state.update { it.copy(balance = clamped) }
     }
 
     fun toSavedPrefs(): SavedEqualizerPrefs {
@@ -276,7 +350,7 @@ class AudioEffectsManager {
         )
     }
 
-    fun release() {
+    private fun releaseHardwareEffects() {
         try { equalizer?.release() } catch (_: Exception) {}
         try { bassBoost?.release() } catch (_: Exception) {}
         try { virtualizer?.release() } catch (_: Exception) {}
@@ -285,13 +359,25 @@ class AudioEffectsManager {
         bassBoost = null
         virtualizer = null
         loudnessEnhancer = null
+        hwEqSupported = false
+        hwBassSupported = false
+        hwVirtSupported = false
+        hwLoudSupported = false
         currentSessionId = 0
+    }
+
+    fun release() {
+        releaseHardwareEffects()
+        audioProcessor?.updateSoftwareEq(false, emptyList())
+        audioProcessor?.updateSoftwareBass(false, 0)
+        audioProcessor?.updateSoftwareVirtualizer(false, 0)
+        audioProcessor?.updateSoftwareLoudness(false, 0)
     }
 
     private fun formatFreq(hz: Int): String {
         return if (hz >= 1000) {
             val khz = hz / 1000f
-            if (khz % 1f == 0f) "${khz.toInt()}kHz" else String.format("%.1fkHz", khz)
+            if (khz % 1f == 0f) "${khz.toInt()}kHz" else String.format(Locale.US, "%.1fkHz", khz)
         } else {
             "${hz}Hz"
         }

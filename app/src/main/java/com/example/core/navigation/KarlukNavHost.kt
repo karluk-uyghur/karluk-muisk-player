@@ -66,7 +66,10 @@ import com.example.R
 import com.example.core.designsystem.KarlukBackground
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.MiniPlayerBar
+import com.example.core.designsystem.localizedAlbumName
+import com.example.core.designsystem.localizedArtistName
 import com.example.domain.model.AppLanguage
+import com.example.domain.model.ThemeAtmosphere
 import com.example.feature.equalizer.EqualizerScreen
 import com.example.feature.favorites.FavoritesScreen
 import com.example.feature.files.AddFilesScreen
@@ -320,13 +323,16 @@ fun KarlukNavHost(
                         ) {
                             composable<AppRoute.Splash> {
                                 SplashScreen(
-                                    onboardingCompleted = userSettings.onboardingCompleted,
+                                    onboardingCompleted = userSettings.onboardingCompleted || hasAudioPermission,
                                     onNavigateToOnboarding = {
                                         navController.navigate(AppRoute.Onboarding) {
                                             popUpTo(AppRoute.Splash) { inclusive = true }
                                         }
                                     },
                                     onNavigateToHome = {
+                                        if (hasAudioPermission && !userSettings.onboardingCompleted) {
+                                            viewModel.setOnboardingCompleted(true)
+                                        }
                                         navController.navigate(AppRoute.Home) {
                                             popUpTo(AppRoute.Splash) { inclusive = true }
                                         }
@@ -339,8 +345,8 @@ fun KarlukNavHost(
                                     currentLanguage = userSettings.language,
                                     onSelectLanguage = onLanguageChanged,
                                     onRequestAudioPermission = {
-                                        permissionLauncher.launch(permissionsToRequest)
                                         viewModel.setOnboardingCompleted(true)
+                                        permissionLauncher.launch(permissionsToRequest)
                                         navController.navigate(AppRoute.Home) {
                                             popUpTo(AppRoute.Onboarding) { inclusive = true }
                                         }
@@ -358,6 +364,7 @@ fun KarlukNavHost(
                             }
 
                             composable<AppRoute.Home> {
+                                val isNightMode = userSettings.themeAtmosphere != ThemeAtmosphere.SILVER_FROST
                                 HomeDashboardScreen(
                                     playbackState = playbackState,
                                     spectrum = spectrum,
@@ -371,7 +378,12 @@ fun KarlukNavHost(
                                     onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
                                     onOpenAddFiles = { navigateTopLevel(AppRoute.AddFiles) },
                                     onOpenHistory = { navController.navigate(AppRoute.History) },
-                                    onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
+                                    isNightMode = isNightMode,
+                                    onToggleDayNight = {
+                                        viewModel.setThemeAtmosphere(
+                                            if (isNightMode) ThemeAtmosphere.SILVER_FROST else ThemeAtmosphere.DEEP_NAVY
+                                        )
+                                    },
                                     onTogglePlayPause = { viewModel.togglePlayPause() },
                                     onSkipNext = { viewModel.skipToNext() },
                                     onSkipPrev = { viewModel.skipToPrevious() },
@@ -453,7 +465,13 @@ fun KarlukNavHost(
                             composable<AppRoute.Settings> {
                                 SettingsScreen(
                                     settings = userSettings,
+                                    playbackState = playbackState,
                                     onSelectLanguage = onLanguageChanged,
+                                    onToggleDayNight = { night ->
+                                        viewModel.setThemeAtmosphere(
+                                            if (night) ThemeAtmosphere.DEEP_NAVY else ThemeAtmosphere.SILVER_FROST
+                                        )
+                                    },
                                     onOpenThemeStudio = { navController.navigate(AppRoute.ThemeStudio) },
                                     onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
                                     onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
@@ -622,7 +640,7 @@ fun KarlukNavHost(
                                 val route = backStackEntry.toRoute<AppRoute.AlbumDetail>()
                                 val albumSongs = allSongs.filter { it.album == route.albumName }
                                 CollectionDetailScreen(
-                                    title = route.albumName,
+                                    title = localizedAlbumName(route.albumName),
                                     songs = albumSongs,
                                     playlists = playlists,
                                     playbackState = playbackState,
@@ -642,7 +660,7 @@ fun KarlukNavHost(
                                 val route = backStackEntry.toRoute<AppRoute.ArtistDetail>()
                                 val artistSongs = allSongs.filter { it.artist == route.artistName }
                                 CollectionDetailScreen(
-                                    title = route.artistName,
+                                    title = localizedArtistName(route.artistName),
                                     songs = artistSongs,
                                     playlists = playlists,
                                     playbackState = playbackState,

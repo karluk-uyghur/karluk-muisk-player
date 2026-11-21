@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Folder
@@ -75,12 +76,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SongArtworkThumb
 import com.example.core.designsystem.SongRowItem
+import com.example.core.designsystem.localizedAlbumName
+import com.example.core.designsystem.localizedArtistName
 import com.example.domain.model.Album
 import com.example.domain.model.Artist
 import com.example.domain.model.FolderItem
@@ -135,6 +139,7 @@ fun LibraryScreen(
 
     // Dialog states
     var optionSong by remember { mutableStateOf<Song?>(null) }
+    var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerIds by remember { mutableStateOf<List<Long>?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
@@ -209,6 +214,16 @@ fun LibraryScreen(
                             modifier = Modifier.minimumInteractiveComponentSize()
                         ) {
                             Icon(Icons.AutoMirrored.Rounded.QueueMusic, contentDescription = "Add to queue", tint = tokens.textPrimary)
+                        }
+                        IconButton(
+                            onClick = {
+                                selectedIds.forEach { onRemoveFromLibrary(it) }
+                                selectionMode = false
+                                selectedIds = emptySet()
+                            },
+                            modifier = Modifier.minimumInteractiveComponentSize().testTag("multiselect_delete_btn")
+                        ) {
+                            Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.action_delete), tint = Color(0xFFFF6E8A))
                         }
                         IconButton(
                             onClick = {
@@ -394,7 +409,8 @@ fun LibraryScreen(
                                         }
                                     },
                                     onToggleFavorite = { onToggleFavorite(song.id) },
-                                    onMoreClick = { optionSong = song }
+                                    onMoreClick = { optionSong = song },
+                                    onDeleteClick = { deleteTargetSong = song }
                                 )
                             }
                         }
@@ -433,14 +449,14 @@ fun LibraryScreen(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
-                                            text = album.name,
+                                            text = localizedAlbumName(album.name),
                                             style = MaterialTheme.typography.titleMedium,
                                             color = tokens.textPrimary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = "${album.artist} • ${stringResource(R.string.home_tracks_count, album.songCount)}",
+                                            text = "${localizedArtistName(album.artist)} • ${stringResource(R.string.home_tracks_count, album.songCount)}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = tokens.textSecondary,
                                             maxLines = 1,
@@ -481,7 +497,7 @@ fun LibraryScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = artist.name,
+                                                text = localizedArtistName(artist.name),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 color = tokens.textPrimary,
                                                 maxLines = 1,
@@ -651,7 +667,8 @@ fun LibraryScreen(
                                     isPlaying = playbackState.isPlaying,
                                     onClick = { onPlaySongs(historySongs, idx) },
                                     onToggleFavorite = { onToggleFavorite(song.id) },
-                                    onMoreClick = { optionSong = song }
+                                    onMoreClick = { optionSong = song },
+                                    onDeleteClick = { deleteTargetSong = song }
                                 )
                             }
                         }
@@ -686,6 +703,14 @@ fun LibraryScreen(
 
     detailSong?.let { song ->
         SongDetailsDialog(song = song, onDismiss = { detailSong = null })
+    }
+
+    deleteTargetSong?.let { song ->
+        DeleteConfirmDialog(
+            itemTitle = song.title,
+            onConfirm = { onRemoveFromLibrary(song.id) },
+            onDismiss = { deleteTargetSong = null }
+        )
     }
 
     if (showCreatePlaylistDialog) {
@@ -772,6 +797,7 @@ fun CollectionDetailScreen(
 ) {
     val tokens = LocalKarlukTokens.current
     var optionSong by remember { mutableStateOf<Song?>(null) }
+    var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
 
@@ -827,7 +853,8 @@ fun CollectionDetailScreen(
                         isPlaying = playbackState.isPlaying,
                         onClick = { onPlaySongs(songs, idx) },
                         onToggleFavorite = { onToggleFavorite(song.id) },
-                        onMoreClick = { optionSong = song }
+                        onMoreClick = { optionSong = song },
+                        onDeleteClick = { deleteTargetSong = song }
                     )
                 }
             }
@@ -865,5 +892,19 @@ fun CollectionDetailScreen(
 
     detailSong?.let { song ->
         SongDetailsDialog(song = song, onDismiss = { detailSong = null })
+    }
+
+    deleteTargetSong?.let { song ->
+        DeleteConfirmDialog(
+            itemTitle = song.title,
+            onConfirm = {
+                if (playlistId != null && onRemoveFromPlaylist != null) {
+                    onRemoveFromPlaylist(song.id)
+                } else {
+                    onRemoveFromLibrary(song.id)
+                }
+            },
+            onDismiss = { deleteTargetSong = null }
+        )
     }
 }

@@ -2,42 +2,42 @@
 <resources>
     <string name="app_name">Karluk MP3 Pro</string>
     <string name="app_subtitle">الإصدار الاحترافي</string>
-    <string name="brand_tagline">الموسيقى لون الحياة</string>
+    <string name="brand_tagline">الصوت لون الحياة</string>
 
     <!-- Navigation -->
     <string name="nav_home">الرئيسية</string>
-    <string name="nav_library">المكتبة</string>
+    <string name="nav_library">الأناشيد</string>
     <string name="nav_favorites">المفضلة</string>
-    <string name="nav_add_files">إضافة ملفات</string>
+    <string name="nav_add_files">إضافة</string>
     <string name="nav_settings">الإعدادات</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title">مرحباً بك في Karluk</string>
-    <string name="onboarding_perm_title">إذن الوصول إلى الصوتيات</string>
-    <string name="onboarding_perm_desc">امنح إذن الصوتيات لاكتشاف الموسيقى تلقائياً أو اختر المجلدات بأمان عبر منتقي النظام.</string>
-    <string name="onboarding_grant_button">السماح بالوصول للصوتيات</string>
-    <string name="onboarding_pick_folder">إضافة مجلد (SAF)</string>
+    <string name="onboarding_perm_title">إذن الوصول إلى الأناشيد</string>
+    <string name="onboarding_perm_desc">امنح إذن الصوتيات لاكتشاف الأناشيد تلقائياً أو اختر الأدلة بأمان عبر منتقي النظام.</string>
+    <string name="onboarding_grant_button">السماح بالوصول للأناشيد</string>
+    <string name="onboarding_pick_folder">إضافة دليل (SAF)</string>
     <string name="onboarding_skip">المتابعة دون إنترنت</string>
 
     <!-- Home Dashboard -->
     <string name="home_now_playing">قيد التشغيل الآن</string>
-    <string name="home_no_track">لم يتم اختيار مقطع</string>
-    <string name="home_tap_to_scan">اضغط على المكتبة أو إضافة ملفات لتحميل الموسيقى</string>
-    <string name="home_quick_library">مكتبة الموسيقى</string>
+    <string name="home_no_track">لم يتم اختيار أنشودة</string>
+    <string name="home_tap_to_scan">اضغط على الأناشيد أو إضافة لتحميل الأناشيد</string>
+    <string name="home_quick_library">قائمة الأناشيد</string>
     <string name="home_quick_favorites">المفضلة</string>
     <string name="home_quick_equalizer">المعادل الصوتي</string>
     <string name="home_quick_files">إضافة ملفات</string>
     <string name="home_quick_history">السجل</string>
-    <string name="home_quick_sleep">مؤقت النوم</string>
+    <string name="home_quick_sleep">مؤقت الإيقاف</string>
     <string name="home_recent_tracks">تم تشغيلها مؤخراً</string>
-    <string name="home_tracks_count">%1$d مقطع</string>
+    <string name="home_tracks_count">%1$d أنشودة</string>
 
     <!-- Library Tabs & Actions -->
-    <string name="library_title">مكتبة الموسيقى</string>
-    <string name="tab_all_songs">كل الأغاني</string>
-    <string name="tab_albums">الألبومات</string>
-    <string name="tab_artists">الفنانون</string>
-    <string name="tab_folders">المجلدات</string>
+    <string name="library_title">الأناشيد</string>
+    <string name="tab_all_songs">كل الأناشيد</string>
+    <string name="tab_albums">المجموعات</string>
+    <string name="tab_artists">المنشدون</string>
+    <string name="tab_folders">الأدلة</string>
     <string name="tab_playlists">القوائم</string>
     <string name="tab_recent">الأخيرة</string>
     <string name="action_play_all">تشغيل الكل</string>
@@ -49,6 +49,8 @@
     <string name="action_cancel">إلغاء</string>
     <string name="action_done">تم</string>
     <string name="action_delete">حذف</string>
+    <string name="action_delete_confirm_title">حذف الأنشودة؟</string>
+    <string name="action_delete_confirm_msg">هل تريد إزالة \"%1$s\" من قائمة الأناشيد؟</string>
     <string name="action_rename">إعادة تسمية</string>
     <string name="action_create">إنشاء</string>
     <string name="action_add_to_playlist">إضافة لقائمة</string>
@@ -62,57 +64,58 @@
 
     <!-- Sort & Filter -->
     <string name="sort_title">العنوان</string>
-    <string name="sort_artist">الفنان</string>
+    <string name="sort_artist">المنشد</string>
     <string name="sort_date_added">تاريخ الإضافة</string>
     <string name="sort_duration">المدة</string>
     <string name="filter_all_formats">كل الصيغ</string>
 
     <!-- Empty & Error States -->
-    <string name="empty_library_title">لم يتم العثور على موسيقى</string>
-    <string name="empty_library_desc">افحص جهازك أو استورد ملفات MP3 أو Opus أو AAC أو M4A أو FLAC أو WAV أو OGG من أي مجلد.</string>
-    <string name="empty_favorites_title">لا توجد مفضلات بعد</string>
-    <string name="empty_favorites_desc">اضغط على أيقونة القلب لحفظ أغانيك المفضلة هنا.</string>
+    <string name="empty_library_title">لم يتم العثور على أناشيد</string>
+    <string name="empty_library_desc">افحص جهازك أو استورد ملفات MP3 أو Opus أو AAC أو M4A أو FLAC أو WAV أو OGG.</string>
+    <string name="empty_favorites_title">لا توجد أناشيد مفضلة بعد</string>
+    <string name="empty_favorites_desc">اضغط على أيقونة القلب لحفظ أناشيدك المفضلة هنا.</string>
     <string name="empty_playlists_title">لا توجد قوائم تشغيل</string>
-    <string name="empty_playlists_desc">أنشئ قوائم تشغيل لتنظيم مقاطعك المفضلة.</string>
+    <string name="empty_playlists_desc">أنشئ قوائم لتنظيم أناشيدك.</string>
     <string name="empty_history_title">لا يوجد سجل تشغيل</string>
-    <string name="empty_history_desc">ستظهر المقاطع التي تستمع إليها هنا تلقائياً.</string>
+    <string name="empty_history_desc">ستظهر الأناشيد التي تستمع إليها هنا تلقائياً.</string>
     <string name="empty_queue_title">قائمة الانتظار فارغة</string>
-    <string name="empty_queue_desc">شغّل أغنية أو أضف مقاطع لبناء قائمة التشغيل.</string>
+    <string name="empty_queue_desc">شغّل أنشودة لبناء قائمة الانتظار.</string>
     <string name="permission_denied_title">مطلوب إذن الصوتيات</string>
-    <string name="permission_denied_desc">يتطلب فحص الجهاز إذن الصوتيات، أو يمكنك اختيار الملفات والمجلدات مباشرة دون إذن.</string>
+    <string name="permission_denied_desc">يتطلب فحص الجهاز إذن الصوتيات، أو يمكنك اختيار الملفات مباشرة دون إذن.</string>
     <string name="playback_error_title">خطأ في التشغيل</string>
-    <string name="unknown_artist">فنان غير معروف</string>
-    <string name="unknown_album">ألبوم غير معروف</string>
+    <string name="unknown_artist">منشد غير معروف</string>
+    <string name="unknown_album">مجموعة عامة</string>
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">قيد التشغيل</string>
     <string name="playback_speed">السرعة</string>
-    <string name="lyrics_title">الكلمات</string>
+    <string name="lyrics_title">النص</string>
     <string name="lyrics_import_lrc">استيراد .LRC</string>
-    <string name="lyrics_edit">تعديل الكلمات</string>
-    <string name="lyrics_empty_title">لا توجد كلمات متاحة</string>
-    <string name="lyrics_empty_desc">استورد ملف .lrc متزامن أو ألصق الكلمات يدوياً لمتابعتها أثناء التشغيل.</string>
-    <string name="lyrics_hint">ألصق أسطر [mm:ss.xx] أو نص الكلمات…</string>
+    <string name="lyrics_edit">تعديل النص</string>
+    <string name="lyrics_empty_title">لا يوجد نص متاح</string>
+    <string name="lyrics_empty_desc">استورد ملف .lrc متزامن أو ألصق النص يدوياً لمتابعته أثناء التشغيل.</string>
+    <string name="lyrics_hint">ألصق أسطر [mm:ss.xx] أو النص…</string>
 
     <!-- Playlists & Queue -->
     <string name="playlists_new">قائمة جديدة</string>
     <string name="playlists_name_hint">اسم القائمة</string>
-    <string name="playlists_songs_count">%1$d مقطع</string>
+    <string name="playlists_songs_count">%1$d أنشودة</string>
     <string name="queue_title">قائمة الانتظار</string>
-    <string name="queue_save_as_playlist">حفظ كقائمة تشغيل</string>
+    <string name="queue_save_as_playlist">حفظ كقائمة</string>
     <string name="queue_clear">مسح الانتظار</string>
 
     <!-- Equalizer & Audio Effects -->
     <string name="equalizer_title">المعادل والتأثيرات</string>
     <string name="equalizer_enable">تفعيل المعادل</string>
-    <string name="equalizer_unsupported">معادل الصوت غير مدعوم في جلسة الصوت الحالية.</string>
+    <string name="equalizer_unsupported">معالج DSP البرمجي نشط.</string>
+    <string name="equalizer_summary">معادل 5 نطاقات • باس • 3D • التوازن</string>
     <string name="preset_flat">مسطح</string>
     <string name="preset_classical">كلاسيكي</string>
     <string name="preset_pop">بوب</string>
     <string name="preset_rock">روك</string>
     <string name="preset_jazz">جاز</string>
-    <string name="preset_hiphop">هيب هوب</string>
-    <string name="preset_vocal">صوتي</string>
+    <string name="preset_hiphop">باس عميق</string>
+    <string name="preset_vocal">صوت الكلام</string>
     <string name="preset_custom">مخصص</string>
     <string name="effect_bass_boost">تعزيز الباس</string>
     <string name="effect_virtualizer">صوت محيطي 3D</string>
@@ -121,30 +124,30 @@
     <string name="effect_not_supported">غير مدعوم على هذا الجهاز</string>
 
     <!-- Search -->
-    <string name="search_title">البحث عن موسيقى</string>
-    <string name="search_hint">ابحث عن أغنية أو فنان أو ألبوم أو صيغة…</string>
+    <string name="search_title">البحث في الأناشيد</string>
+    <string name="search_hint">ابحث عن أنشودة أو منشد أو صيغة…</string>
     <string name="search_recent">عمليات البحث الأخيرة</string>
-    <string name="search_no_results">لم يتم العثور على نتائج مطابقة</string>
+    <string name="search_no_results">لم يتم العثور على أناشيد مطابقة</string>
 
     <!-- Add Files & File Manager -->
-    <string name="files_title">إضافة ملفات ومجلدات</string>
-    <string name="files_pick_audio">اختيار ملفات صوتية</string>
+    <string name="files_title">إضافة ملفات</string>
+    <string name="files_pick_audio">اختيار ملفات الأناشيد</string>
     <string name="files_pick_audio_desc">اختر ملفات MP3, Opus, AAC, M4A, FLAC, WAV, OGG</string>
-    <string name="files_pick_folder">إضافة مجلد موسيقى</string>
-    <string name="files_pick_folder_desc">منح وصول دائم لمجلد عبر SAF</string>
-    <string name="files_scan_device">فحص وسائط الجهاز</string>
-    <string name="files_scan_device_desc">تحديث المكتبة من MediaStore</string>
-    <string name="files_added_folders">المجلدات المضافة</string>
-    <string name="files_excluded_folders">المجلدات المستبعدة</string>
+    <string name="files_pick_folder">إضافة دليل ملفات</string>
+    <string name="files_pick_folder_desc">منح وصول دائم لدليل عبر SAF</string>
+    <string name="files_scan_device">فحص الأناشيد في الجهاز</string>
+    <string name="files_scan_device_desc">تحديث الأناشيد من MediaStore</string>
+    <string name="files_added_folders">الأدلة المضافة</string>
+    <string name="files_excluded_folders">الأدلة المستبعدة</string>
     <string name="files_supported_formats">الصيغ المدعومة: MP3, OPUS, AAC, M4A, FLAC, WAV, OGG</string>
-    <string name="files_details">تفاصيل الملف</string>
-    <string name="files_exclude_folder">استبعاد المجلد</string>
-    <string name="files_restore_folder">استعادة المجلد</string>
+    <string name="files_details">تفاصيل الأنشودة</string>
+    <string name="files_exclude_folder">استبعاد الدليل</string>
+    <string name="files_restore_folder">استعادة الدليل</string>
 
-    <!-- Sleep Timer & History -->
-    <string name="sleep_timer_title">مؤقت النوم</string>
+    <!-- Auto-Stop Timer & History -->
+    <string name="sleep_timer_title">مؤقت الإيقاف</string>
     <string name="sleep_timer_off">المؤقت متوقف</string>
-    <string name="sleep_timer_end_track">نهاية المقطع الحالي</string>
+    <string name="sleep_timer_end_track">نهاية الأنشودة الحالية</string>
     <string name="sleep_timer_minutes">%1$d دقيقة</string>
     <string name="sleep_timer_remaining">المتبقي: %1$s</string>
     <string name="history_title">سجل التشغيل</string>
@@ -157,21 +160,24 @@
     <string name="settings_theme_studio">استوديو المظهر</string>
     <string name="settings_equalizer">المعادل والتأثيرات الصوتية</string>
     <string name="settings_playback">التشغيل</string>
-    <string name="settings_resume_playback">استئناف آخر مقطع عند الفتح</string>
+    <string name="settings_resume_playback">استئناف آخر أنشودة عند الفتح</string>
     <string name="settings_gapless">تشغيل بدون فواصل</string>
-    <string name="settings_library">المكتبة والفحص التلقائي</string>
+    <string name="settings_library">فحص الأناشيد التلقائي</string>
     <string name="settings_auto_scan">فحص تلقائي عند التشغيل</string>
     <string name="settings_storage">معلومات التخزين</string>
     <string name="settings_privacy">الخصوصية والبيانات</string>
-    <string name="settings_privacy_note">يعمل دون إنترنت 100%%. ملفاتك وسجلك لا يغادران جهازك أبداً.</string>
+    <string name="settings_privacy_note">يعمل دون إنترنت 100%%. أناشيدك وسجلك لا يغادران جهازك أبداً.</string>
     <string name="settings_about">حول Karluk MP3 Pro</string>
 
-    <!-- Theme Studio -->
+    <!-- Theme Studio & Day/Night Mode -->
+    <string name="theme_night_mode">الوضع الليلي</string>
+    <string name="theme_day_mode">الوضع النهاري</string>
+    <string name="settings_day_night_mode">الوضع الليلي / النهاري</string>
     <string name="theme_mode">نمط المظهر</string>
-    <string name="theme_dark_navy">كحلي عميق</string>
+    <string name="theme_dark_navy">الوضع الليلي (كحلي عميق)</string>
     <string name="theme_midnight_violet">بنفسجي ليلي</string>
     <string name="theme_ocean_blue">أزرق ملكي</string>
-    <string name="theme_light_frost">فضي فاتح</string>
+    <string name="theme_light_frost">الوضع النهاري (فضي فاتح)</string>
     <string name="theme_accent">لون الإضاءة</string>
     <string name="theme_glass_opacity">شفافية الزجاج</string>
     <string name="theme_reduced_motion">تقليل الحركة</string>
@@ -179,11 +185,11 @@
 
     <!-- Storage & About -->
     <string name="storage_title">معلومات التخزين</string>
-    <string name="storage_total_tracks">إجمالي المقاطع</string>
-    <string name="storage_total_size">حجم المكتبة</string>
-    <string name="storage_cache_size">ذاكرة الأغلفة المؤقتة</string>
-    <string name="storage_clear_cache">مسح ذاكرة الأغلفة</string>
-    <string name="storage_by_format">المقاطع حسب الصيغة</string>
+    <string name="storage_total_tracks">إجمالي الأناشيد</string>
+    <string name="storage_total_size">الحجم الإجمالي</string>
+    <string name="storage_cache_size">ذاكرة الصور المؤقتة</string>
+    <string name="storage_clear_cache">مسح الذاكرة المؤقتة</string>
+    <string name="storage_by_format">الأناشيد حسب الصيغة</string>
     <string name="about_version">الإصدار 1.0.0 — Ultimate Edition</string>
-    <string name="about_desc">مشغل موسيقى احترافي متعدد اللغات يعمل دون إنترنت، مبني باستخدام Kotlin و Jetpack Compose و AndroidX Media3 ExoPlayer.</string>
+    <string name="about_desc">مشغل صوتيات احترافي متعدد اللغات يعمل دون إنترنت، مبني باستخدام Kotlin و Jetpack Compose و AndroidX Media3 ExoPlayer.</string>
 </resources>

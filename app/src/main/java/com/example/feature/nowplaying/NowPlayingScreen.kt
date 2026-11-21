@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Favorite
@@ -30,6 +29,7 @@ import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,11 +50,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
@@ -65,6 +68,8 @@ import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SpectrumVisualizerCanvas
 import com.example.core.designsystem.SpinningVinylArtwork
+import com.example.core.designsystem.localizedAlbum
+import com.example.core.designsystem.localizedArtist
 import com.example.domain.model.PlaybackState
 import com.example.domain.model.PlaybackStatus
 import com.example.domain.model.RepeatModeOption
@@ -185,7 +190,8 @@ fun NowPlayingScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = song?.let { "${it.artist} • ${it.album}" } ?: stringResource(R.string.home_tap_to_scan),
+                                text = song?.let { "${it.localizedArtist()} • ${it.localizedAlbum()}" }
+                                    ?: stringResource(R.string.home_tap_to_scan),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = tokens.textSecondary,
                                 maxLines = 1,
@@ -239,74 +245,76 @@ fun NowPlayingScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Seek slider
-                    val duration = playbackState.durationMs.coerceAtLeast(1L)
-                    var isSeeking by remember { mutableStateOf(false) }
-                    var seekFraction by remember { mutableFloatStateOf(0f) }
-                    val liveFraction = (playbackState.positionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                    // Seek slider & playback controls stay LTR in all locales
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        val duration = playbackState.durationMs.coerceAtLeast(1L)
+                        var isSeeking by remember { mutableStateOf(false) }
+                        var seekFraction by remember { mutableFloatStateOf(0f) }
+                        val liveFraction = (playbackState.positionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
 
-                    Slider(
-                        value = if (isSeeking) seekFraction else liveFraction,
-                        onValueChange = {
-                            isSeeking = true
-                            seekFraction = it
-                        },
-                        onValueChangeFinished = {
-                            isSeeking = false
-                            onSeekTo((seekFraction * duration).toLong())
-                        },
-                        enabled = song != null,
-                        colors = SliderDefaults.colors(
-                            thumbColor = tokens.accentPrimary,
-                            activeTrackColor = tokens.accentPrimary,
-                            inactiveTrackColor = tokens.glassBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth().testTag("now_playing_seek")
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        val shownPos = if (isSeeking) (seekFraction * duration).toLong() else playbackState.positionMs
-                        Text(FormatUtils.formatDuration(shownPos), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
-                        Text(FormatUtils.formatDuration(playbackState.durationMs), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Primary playback controls
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = onToggleShuffle, modifier = Modifier.minimumInteractiveComponentSize()) {
-                            Icon(
-                                Icons.Rounded.Shuffle,
-                                contentDescription = "Shuffle",
-                                tint = if (playbackState.shuffleEnabled) tokens.accentPrimary else tokens.textSecondary
-                            )
-                        }
-                        IconButton(onClick = onSkipPrev, modifier = Modifier.minimumInteractiveComponentSize()) {
-                            Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = tokens.textPrimary, modifier = Modifier.size(36.dp))
-                        }
-                        GlowingPlayButton(
-                            isPlaying = playbackState.isPlaying,
-                            onClick = onTogglePlayPause,
-                            size = 72.dp,
-                            testTag = "now_playing_play_pause"
+                        Slider(
+                            value = if (isSeeking) seekFraction else liveFraction,
+                            onValueChange = {
+                                isSeeking = true
+                                seekFraction = it
+                            },
+                            onValueChangeFinished = {
+                                isSeeking = false
+                                onSeekTo((seekFraction * duration).toLong())
+                            },
+                            enabled = song != null,
+                            colors = SliderDefaults.colors(
+                                thumbColor = tokens.accentPrimary,
+                                activeTrackColor = tokens.accentPrimary,
+                                inactiveTrackColor = tokens.glassBorder
+                            ),
+                            modifier = Modifier.fillMaxWidth().testTag("now_playing_seek")
                         )
-                        IconButton(onClick = onSkipNext, modifier = Modifier.minimumInteractiveComponentSize()) {
-                            Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = tokens.textPrimary, modifier = Modifier.size(36.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            val shownPos = if (isSeeking) (seekFraction * duration).toLong() else playbackState.positionMs
+                            Text(FormatUtils.formatDuration(shownPos), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
+                            Text(FormatUtils.formatDuration(playbackState.durationMs), style = MaterialTheme.typography.labelMedium, color = tokens.textSecondary)
                         }
-                        IconButton(onClick = onCycleRepeat, modifier = Modifier.minimumInteractiveComponentSize()) {
-                            val icon = if (playbackState.repeatMode == RepeatModeOption.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat
-                            Icon(
-                                icon,
-                                contentDescription = "Repeat",
-                                tint = if (playbackState.repeatMode != RepeatModeOption.OFF) tokens.accentPrimary else tokens.textSecondary
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Primary playback controls
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = onToggleShuffle, modifier = Modifier.minimumInteractiveComponentSize()) {
+                                Icon(
+                                    Icons.Rounded.Shuffle,
+                                    contentDescription = "Shuffle",
+                                    tint = if (playbackState.shuffleEnabled) tokens.accentPrimary else tokens.textSecondary
+                                )
+                            }
+                            IconButton(onClick = onSkipPrev, modifier = Modifier.minimumInteractiveComponentSize()) {
+                                Icon(Icons.Rounded.SkipPrevious, contentDescription = "Previous", tint = tokens.textPrimary, modifier = Modifier.size(36.dp))
+                            }
+                            GlowingPlayButton(
+                                isPlaying = playbackState.isPlaying,
+                                onClick = onTogglePlayPause,
+                                size = 72.dp,
+                                testTag = "now_playing_play_pause"
                             )
+                            IconButton(onClick = onSkipNext, modifier = Modifier.minimumInteractiveComponentSize()) {
+                                Icon(Icons.Rounded.SkipNext, contentDescription = "Next", tint = tokens.textPrimary, modifier = Modifier.size(36.dp))
+                            }
+                            IconButton(onClick = onCycleRepeat, modifier = Modifier.minimumInteractiveComponentSize()) {
+                                val icon = if (playbackState.repeatMode == RepeatModeOption.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat
+                                Icon(
+                                    icon,
+                                    contentDescription = "Repeat",
+                                    tint = if (playbackState.repeatMode != RepeatModeOption.OFF) tokens.accentPrimary else tokens.textSecondary
+                                )
+                            }
                         }
                     }
 
@@ -321,7 +329,7 @@ fun NowPlayingScreen(
                             ToolActionButton(Icons.Rounded.Lyrics, stringResource(R.string.lyrics_title), onOpenLyrics, "now_playing_lyrics_btn")
                             ToolActionButton(Icons.Rounded.Equalizer, stringResource(R.string.home_quick_equalizer), onOpenEqualizer, "now_playing_eq_btn")
                             ToolActionButton(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.queue_title), onOpenQueue, "now_playing_queue_tool_btn")
-                            ToolActionButton(Icons.Rounded.Bedtime, stringResource(R.string.sleep_timer_title), onOpenSleepTimer, "now_playing_sleep_btn")
+                            ToolActionButton(Icons.Rounded.Timer, stringResource(R.string.sleep_timer_title), onOpenSleepTimer, "now_playing_sleep_btn")
                         }
                     }
 

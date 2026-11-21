@@ -22,7 +22,7 @@ class AppContainer(context: Context) {
         mediaScanner = mediaScanner
     )
     val audioProcessor = KarlukAudioProcessor()
-    val audioEffectsManager = AudioEffectsManager()
+    val audioEffectsManager = AudioEffectsManager(audioProcessor)
     val playbackController = PlaybackController(
         context = appContext,
         musicRepository = musicRepository,

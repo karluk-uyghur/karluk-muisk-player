@@ -24,10 +24,10 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.FormatBadge
 import com.example.core.designsystem.GlassCard
@@ -62,6 +63,7 @@ import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SongArtworkThumb
 import com.example.core.designsystem.SongRowItem
+import com.example.core.designsystem.localizedArtist
 import com.example.domain.model.PlaybackState
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
@@ -149,7 +151,7 @@ fun QueueScreen(
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                             FormatBadge(song.formatLabel)
                                             Text(
-                                                text = song.artist,
+                                                text = song.localizedArtist(),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = tokens.textSecondary,
                                                 maxLines = 1,
@@ -176,7 +178,7 @@ fun QueueScreen(
                                         onClick = { onRemoveItem(index) },
                                         modifier = Modifier.minimumInteractiveComponentSize()
                                     ) {
-                                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.action_remove), tint = Color(0xFFFF5E7E))
+                                        Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.action_delete), tint = Color(0xFFFF5E7E))
                                     }
                                 }
                             }
@@ -237,6 +239,7 @@ fun HistoryScreen(
     onRemoveFromLibrary: (Long) -> Unit
 ) {
     var optionSong by remember { mutableStateOf<Song?>(null) }
+    var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
 
@@ -283,7 +286,8 @@ fun HistoryScreen(
                                 isPlaying = playbackState.isPlaying,
                                 onClick = { onPlaySongs(historySongs, idx) },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
-                                onMoreClick = { optionSong = song }
+                                onMoreClick = { optionSong = song },
+                                onDeleteClick = { deleteTargetSong = song }
                             )
                         }
                     }
@@ -317,6 +321,14 @@ fun HistoryScreen(
 
     detailSong?.let { song ->
         SongDetailsDialog(song = song, onDismiss = { detailSong = null })
+    }
+
+    deleteTargetSong?.let { song ->
+        DeleteConfirmDialog(
+            itemTitle = song.title,
+            onConfirm = { onRemoveFromLibrary(song.id) },
+            onDismiss = { deleteTargetSong = null }
+        )
     }
 }
 
@@ -361,7 +373,7 @@ fun SleepTimerScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
-                                Icons.Rounded.Bedtime,
+                                Icons.Rounded.Timer,
                                 contentDescription = null,
                                 tint = Color(0xFFFFB74D),
                                 modifier = Modifier.size(48.dp)

@@ -2,7 +2,10 @@ package com.example
 
 import com.example.core.common.FormatUtils
 import com.example.domain.model.AppLanguage
+import com.example.domain.model.EqualizerPreset
 import com.example.domain.model.LrcParser
+import com.example.playback.audio.KarlukAudioProcessor
+import com.example.playback.effects.AudioEffectsManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,8 +17,8 @@ class KarlukDomainUnitTest {
     fun `lrc parser parses synced timestamps and finds active line`() {
         val raw = """
             [ar:Karluk]
-            [00:05.00]گۈزەل مۇزىكا
-            [00:12.50]مۇزىكا ھاياتنىڭ رەڭگى
+            [00:05.00]گۈزەل ئاۋاز
+            [00:12.50]ئاۋاز ھاياتنىڭ رەڭگى
             [00:25.00]ھەر كۈنى گۈزەل بولىدۇ
         """.trimIndent()
 
@@ -50,5 +53,35 @@ class KarlukDomainUnitTest {
         assertEquals(AppLanguage.ARABIC, AppLanguage.fromCode("ar"))
         assertEquals(AppLanguage.TURKISH, AppLanguage.fromCode("tr"))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.fromCode("en"))
+    }
+
+    @Test
+    fun `audio effects manager provides software dsp bands and effects without hardware session`() {
+        val processor = KarlukAudioProcessor()
+        val manager = AudioEffectsManager(processor)
+        val initial = manager.state.value
+
+        assertTrue(initial.isEqualizerSupported)
+        assertTrue(initial.isBassBoostSupported)
+        assertTrue(initial.isVirtualizerSupported)
+        assertTrue(initial.isLoudnessSupported)
+        assertEquals(5, initial.bands.size)
+
+        manager.setEqualizerEnabled(true)
+        manager.applyPreset(EqualizerPreset.ROCK)
+        manager.setBassBoost(true, 650)
+        manager.setVirtualizer(true, 500)
+        manager.setLoudnessEnhancer(true, 800)
+        manager.setBalance(-0.25f)
+
+        val updated = manager.state.value
+        assertTrue(updated.isEqualizerEnabled)
+        assertEquals(EqualizerPreset.ROCK, updated.activePreset)
+        assertTrue(processor.softwareEqEnabled)
+        assertTrue(processor.softwareBassEnabled)
+        assertEquals(650, processor.softwareBassStrength)
+        assertTrue(processor.softwareVirtualizerEnabled)
+        assertTrue(processor.softwareLoudnessEnabled)
+        assertEquals(-0.25f, processor.balance, 0.001f)
     }
 }

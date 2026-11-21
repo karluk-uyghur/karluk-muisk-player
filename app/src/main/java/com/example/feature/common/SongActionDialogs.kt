@@ -51,6 +51,8 @@ import com.example.core.designsystem.FormatBadge
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SongArtworkThumb
+import com.example.core.designsystem.localizedAlbum
+import com.example.core.designsystem.localizedArtist
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 
@@ -90,7 +92,7 @@ fun SongOptionsDialog(
                     ) {
                         FormatBadge(formatLabel = song.formatLabel)
                         Text(
-                            text = song.artist,
+                            text = song.localizedArtist(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = tokens.textSecondary,
                             maxLines = 1,
@@ -270,13 +272,13 @@ fun SongDetailsDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                DetailLine("Title", song.title)
-                DetailLine("Artist", song.artist)
-                DetailLine("Album", song.album)
-                DetailLine("Format", "${song.formatLabel} (${song.mimeType})")
-                DetailLine("Duration", FormatUtils.formatDuration(song.duration))
-                DetailLine("Size", FormatUtils.formatFileSize(song.fileSize))
-                DetailLine("Folder", song.folderName)
+                DetailLine(stringResource(R.string.sort_title), song.title)
+                DetailLine(stringResource(R.string.sort_artist), song.localizedArtist())
+                DetailLine(stringResource(R.string.tab_albums), song.localizedAlbum())
+                DetailLine(stringResource(R.string.action_filter_format), "${song.formatLabel} (${song.mimeType})")
+                DetailLine(stringResource(R.string.sort_duration), FormatUtils.formatDuration(song.duration))
+                DetailLine(stringResource(R.string.storage_total_size), FormatUtils.formatFileSize(song.fileSize))
+                DetailLine(stringResource(R.string.tab_folders), song.folderName)
                 DetailLine("URI", song.uri)
             }
         },

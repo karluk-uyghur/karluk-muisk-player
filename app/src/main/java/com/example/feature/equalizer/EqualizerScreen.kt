@@ -31,16 +31,19 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.designsystem.GlassCard
@@ -50,6 +53,7 @@ import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SpectrumVisualizerCanvas
 import com.example.domain.model.AudioEffectsState
 import com.example.domain.model.EqualizerPreset
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -149,37 +153,39 @@ fun EqualizerScreen(
                                 val minMb = effectsState.minLevelMb.toFloat()
                                 val maxMb = effectsState.maxLevelMb.toFloat().coerceAtLeast(minMb + 100f)
 
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 18.dp),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    effectsState.bands.forEach { band ->
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            val db = band.levelMb / 100f
-                                            Text(
-                                                text = String.format("%+.0fdB", db),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = tokens.accentPrimary
-                                            )
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            VerticalBandSlider(
-                                                value = band.levelMb.toFloat(),
-                                                valueRange = minMb..maxMb,
-                                                enabled = effectsState.isEqualizerEnabled,
-                                                onValueChange = { onSetBandLevel(band.index, it.roundToInt().toShort()) },
-                                                modifier = Modifier.height(164.dp)
-                                            )
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Text(
-                                                text = band.label,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = tokens.textSecondary
-                                            )
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 10.dp, vertical = 18.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly
+                                    ) {
+                                        effectsState.bands.forEach { band ->
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                val db = band.levelMb / 100f
+                                                Text(
+                                                    text = String.format(Locale.US, "%+.0fdB", db),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = tokens.accentPrimary
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                VerticalBandSlider(
+                                                    value = band.levelMb.toFloat(),
+                                                    valueRange = minMb..maxMb,
+                                                    enabled = effectsState.isEqualizerEnabled,
+                                                    onValueChange = { onSetBandLevel(band.index, it.roundToInt().toShort()) },
+                                                    modifier = Modifier.height(164.dp)
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = band.label,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = tokens.textSecondary
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -263,7 +269,7 @@ fun EqualizerScreen(
                                     onSlide = { onSetLoudness(effectsState.isLoudnessEnabled, it.roundToInt()) }
                                 )
 
-                                // Software Stereo L/R Balance (always supported via KarlukAudioProcessor)
+                                // Software Stereo L/R Balance (always LTR so Left=L and Right=R visually)
                                 Column {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -279,22 +285,26 @@ fun EqualizerScreen(
                                             effectsState.balance > 0.05f -> "R ${(effectsState.balance * 100).roundToInt()}%"
                                             else -> "Center"
                                         }
-                                        Text(
-                                            text = balLabel,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = tokens.accentPrimary
+                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                            Text(
+                                                text = balLabel,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = tokens.accentPrimary
+                                            )
+                                        }
+                                    }
+                                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                        Slider(
+                                            value = effectsState.balance,
+                                            onValueChange = onSetBalance,
+                                            valueRange = -1f..1f,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = tokens.accentPrimary,
+                                                activeTrackColor = tokens.accentPrimary
+                                            ),
+                                            modifier = Modifier.testTag("eq_balance_slider")
                                         )
                                     }
-                                    Slider(
-                                        value = effectsState.balance,
-                                        onValueChange = onSetBalance,
-                                        valueRange = -1f..1f,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = tokens.accentPrimary,
-                                            activeTrackColor = tokens.accentPrimary
-                                        ),
-                                        modifier = Modifier.testTag("eq_balance_slider")
-                                    )
                                 }
                             }
                         }

@@ -184,7 +184,7 @@ class MusicRepository(
         } catch (_: Exception) {
         }
         val doc = DocumentFile.fromTreeUri(context, treeUri)
-        val name = doc?.name ?: "Music Folder"
+        val name = doc?.name ?: "Audio Directory"
         dao.insertSafFolder(SafFolderEntity(treeUri = treeUri.toString(), displayName = name))
         val result = mediaScanner.scanSafTree(treeUri, name)
         if (result.songs.isNotEmpty()) {

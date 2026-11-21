@@ -33,7 +33,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -59,6 +61,7 @@ fun SplashScreen(
     onNavigateToHome: () -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
+    val latestCompleted by rememberUpdatedState(onboardingCompleted)
     val scale = remember { Animatable(0.82f) }
     val alpha = remember { Animatable(0f) }
 
@@ -66,7 +69,7 @@ fun SplashScreen(
         alpha.animateTo(1f, animationSpec = tween(450))
         scale.animateTo(1f, animationSpec = tween(450))
         delay(850L)
-        if (onboardingCompleted) {
+        if (latestCompleted) {
             onNavigateToHome()
         } else {
             onNavigateToOnboarding()

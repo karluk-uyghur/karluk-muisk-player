@@ -48,7 +48,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private val audioProcessor = container.audioProcessor
 
     val userSettings: StateFlow<UserSettings> = prefs.userSettingsFlow
-        .stateIn(viewModelScope, SharingStarted.Eagerly, UserSettings())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, prefs.getInitialSettingsSync())
 
     val allSongs: StateFlow<List<Song>> = repo.allSongsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -115,11 +115,10 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             }
         }
 
-        // Sync saved L/R balance to KarlukAudioProcessor
+        // Apply saved Equalizer & DSP preferences immediately on launch
         viewModelScope.launch {
-            prefs.equalizerPrefsFlow.collect { saved ->
-                audioProcessor.balance = saved.balance
-            }
+            val saved = prefs.equalizerPrefsFlow.first()
+            effects.applySavedPrefs(saved)
         }
 
         // Auto-scan and optionally resume last track on startup
@@ -381,6 +380,7 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     // Settings
     fun setOnboardingCompleted(completed: Boolean) {
+        prefs.setOnboardingCompletedSync(completed)
         viewModelScope.launch { prefs.setOnboardingCompleted(completed) }
     }
 

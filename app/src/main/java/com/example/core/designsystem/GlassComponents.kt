@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
@@ -38,6 +39,7 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -48,8 +50,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,11 +77,84 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.common.FormatUtils
 import com.example.domain.model.Song
+
+@Composable
+fun localizedArtistName(raw: String): String {
+    return if (raw.isBlank() || raw == "Unknown Artist" || raw == "<unknown>") {
+        stringResource(R.string.unknown_artist)
+    } else {
+        raw
+    }
+}
+
+@Composable
+fun localizedAlbumName(raw: String): String {
+    return if (raw.isBlank() || raw == "Unknown Album" || raw == "<unknown>") {
+        stringResource(R.string.unknown_album)
+    } else {
+        raw
+    }
+}
+
+@Composable
+fun Song.localizedArtist(): String = localizedArtistName(artist)
+
+@Composable
+fun Song.localizedAlbum(): String = localizedAlbumName(album)
+
+@Composable
+fun DeleteConfirmDialog(
+    itemTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val tokens = LocalKarlukTokens.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = if (tokens.isLightTheme) Color.White else Color(0xFF0E2150),
+        title = {
+            Text(
+                text = stringResource(R.string.action_delete_confirm_title),
+                color = tokens.textPrimary
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.action_delete_confirm_msg, itemTitle),
+                color = tokens.textSecondary
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                },
+                modifier = Modifier.testTag("confirm_delete_btn")
+            ) {
+                Text(
+                    text = stringResource(R.string.action_delete),
+                    color = Color(0xFFFF5E7E),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.action_cancel),
+                    color = tokens.textSecondary
+                )
+            }
+        }
+    )
+}
 
 @Composable
 fun KarlukBackground(
@@ -469,6 +547,7 @@ fun SongRowItem(
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onMoreClick: () -> Unit,
+    onDeleteClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalKarlukTokens.current
@@ -483,7 +562,7 @@ fun SongRowItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (selectionMode) {
@@ -492,12 +571,12 @@ fun SongRowItem(
                     onCheckedChange = { onClick() },
                     colors = CheckboxDefaults.colors(checkedColor = tokens.accentPrimary)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(2.dp))
             }
 
-            SongArtworkThumb(artworkUri = song.artworkUri, size = 50.dp)
+            SongArtworkThumb(artworkUri = song.artworkUri, size = 48.dp)
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -514,7 +593,12 @@ fun SongRowItem(
                 ) {
                     FormatBadge(formatLabel = song.formatLabel)
                     Text(
-                        text = song.artist,
+                        text = FormatUtils.formatDuration(song.duration),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isCurrent && isPlaying) tokens.accentPrimary else tokens.textSecondary
+                    )
+                    Text(
+                        text = song.localizedArtist(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = tokens.textSecondary,
                         maxLines = 1,
@@ -524,23 +608,30 @@ fun SongRowItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = FormatUtils.formatDuration(song.duration),
-                style = MaterialTheme.typography.labelMedium,
-                color = if (isCurrent && isPlaying) tokens.accentPrimary else tokens.textSecondary
-            )
-
             IconButton(
                 onClick = onToggleFavorite,
                 modifier = Modifier.minimumInteractiveComponentSize()
             ) {
                 Icon(
                     imageVector = if (song.isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = "Favorite",
+                    contentDescription = stringResource(R.string.home_quick_favorites),
                     tint = if (song.isFavorite) Color(0xFFFF4B7A) else tokens.textSecondary
                 )
+            }
+
+            if (onDeleteClick != null) {
+                IconButton(
+                    onClick = onDeleteClick,
+                    modifier = Modifier
+                        .minimumInteractiveComponentSize()
+                        .testTag("song_delete_${song.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteOutline,
+                        contentDescription = stringResource(R.string.action_delete),
+                        tint = Color(0xFFFF6E8A)
+                    )
+                }
             }
 
             IconButton(
@@ -549,7 +640,7 @@ fun SongRowItem(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = stringResource(R.string.files_details),
                     tint = tokens.textSecondary
                 )
             }
@@ -599,7 +690,7 @@ fun MiniPlayerBar(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${song.artist} • ${FormatUtils.formatDuration(positionMs)} / ${FormatUtils.formatDuration(durationMs)}",
+                        text = "${song.localizedArtist()} • ${FormatUtils.formatDuration(positionMs)} / ${FormatUtils.formatDuration(durationMs)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = tokens.textSecondary,
                         maxLines = 1,
@@ -641,19 +732,21 @@ fun MiniPlayerBar(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.QueueMusic,
-                        contentDescription = "Queue",
+                        contentDescription = stringResource(R.string.queue_title),
                         tint = tokens.textSecondary
                     )
                 }
             }
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp),
-                color = tokens.accentPrimary,
-                trackColor = tokens.glassBorder.copy(alpha = 0.25f)
-            )
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.5.dp),
+                    color = tokens.accentPrimary,
+                    trackColor = tokens.glassBorder.copy(alpha = 0.25f)
+                )
+            }
         }
     }
 }

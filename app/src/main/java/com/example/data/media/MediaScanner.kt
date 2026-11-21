@@ -125,9 +125,9 @@ class MediaScanner(private val context: Context) {
                     val folderPath = when {
                         !rawPath.isNullOrBlank() -> File(rawPath).parent ?: "Device"
                         !relPath.isNullOrBlank() -> relPath.trimEnd('/')
-                        else -> "Music"
+                        else -> "Audio"
                     }
-                    val folderName = folderPath.substringAfterLast('/').ifBlank { "Music" }
+                    val folderName = folderPath.substringAfterLast('/').ifBlank { "Audio" }
 
                     val rawTitle = cursor.getString(titleCol)?.takeIf { it.isNotBlank() }
                         ?: displayName.substringBeforeLast('.')
@@ -277,7 +277,7 @@ class MediaScanner(private val context: Context) {
         val resolvedMime = context.contentResolver.getType(uri).orEmpty().ifBlank { guessMimeType(ext) }
 
         val retriever = MediaMetadataRetriever()
-        var title = displayName.substringBeforeLast('.').ifBlank { "Audio Track" }
+        var title = displayName.substringBeforeLast('.').ifBlank { "Nasheed" }
         var artist = "Unknown Artist"
         var album = "Unknown Album"
         var duration = 0L

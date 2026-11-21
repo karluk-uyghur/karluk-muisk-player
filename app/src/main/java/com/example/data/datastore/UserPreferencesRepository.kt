@@ -66,9 +66,11 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     val userSettingsFlow: Flow<UserSettings> = context.dataStore.data.map { prefs ->
+        val onboardingDone = prefs[Keys.ONBOARDING_DONE]
+            ?: localeMirrorPrefs.getBoolean("onboarding_done", false)
         UserSettings(
-            onboardingCompleted = prefs[Keys.ONBOARDING_DONE] ?: false,
-            language = AppLanguage.fromCode(prefs[Keys.LANGUAGE] ?: AppLanguage.UYGHUR.code),
+            onboardingCompleted = onboardingDone,
+            language = AppLanguage.fromCode(prefs[Keys.LANGUAGE] ?: getSavedLanguageSync().code),
             themeAtmosphere = ThemeAtmosphere.fromId(prefs[Keys.THEME_ATMOSPHERE] ?: ThemeAtmosphere.DEEP_NAVY.id),
             accentOption = AccentOption.fromId(prefs[Keys.ACCENT_OPTION] ?: AccentOption.CYAN.id),
             glassOpacity = prefs[Keys.GLASS_OPACITY] ?: 0.14f,
@@ -109,12 +111,28 @@ class UserPreferencesRepository(private val context: Context) {
         return AppLanguage.fromCode(code)
     }
 
+    fun getOnboardingCompletedSync(): Boolean {
+        return localeMirrorPrefs.getBoolean("onboarding_done", false)
+    }
+
+    fun getInitialSettingsSync(): UserSettings {
+        return UserSettings(
+            onboardingCompleted = getOnboardingCompletedSync(),
+            language = getSavedLanguageSync()
+        )
+    }
+
+    fun setOnboardingCompletedSync(completed: Boolean) {
+        localeMirrorPrefs.edit().putBoolean("onboarding_done", completed).apply()
+    }
+
     suspend fun setLanguage(language: AppLanguage) {
         localeMirrorPrefs.edit().putString("lang_code", language.code).apply()
         context.dataStore.edit { it[Keys.LANGUAGE] = language.code }
     }
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
+        setOnboardingCompletedSync(completed)
         context.dataStore.edit { it[Keys.ONBOARDING_DONE] = completed }
     }
 
