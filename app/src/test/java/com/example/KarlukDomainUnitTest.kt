@@ -84,4 +84,37 @@ class KarlukDomainUnitTest {
         assertTrue(processor.softwareLoudnessEnabled)
         assertEquals(-0.25f, processor.balance, 0.001f)
     }
+
+    @Test
+    fun `audio processor drives all 16 spectrum bands on stereo pcm audio`() {
+        val processor = KarlukAudioProcessor()
+        val format = androidx.media3.common.audio.AudioProcessor.AudioFormat(
+            44100,
+            2,
+            androidx.media3.common.C.ENCODING_PCM_16BIT
+        )
+        processor.configure(format)
+        processor.flush()
+
+        // Generate 512 stereo frames containing low + mid + high tones
+        val frameCount = 512
+        val buf = java.nio.ByteBuffer.allocateDirect(frameCount * 4).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        for (i in 0 until frameCount) {
+            val t = i / 44100.0
+            val sig = 0.4 * kotlin.math.sin(2.0 * Math.PI * 180.0 * t) +
+                0.35 * kotlin.math.sin(2.0 * Math.PI * 1800.0 * t) +
+                0.3 * kotlin.math.sin(2.0 * Math.PI * 9000.0 * t)
+            val s = (sig.coerceIn(-0.99, 0.99) * 32767.0).toInt().toShort()
+            buf.putShort(s)
+            buf.putShort(s)
+        }
+        buf.flip()
+        processor.queueInput(buf)
+
+        val bands = processor.spectrumFlow.value
+        assertEquals(KarlukAudioProcessor.BAND_COUNT, bands.size)
+        for (b in bands.indices) {
+            assertTrue("Expected band $b to be active (> 0.05), got ${bands[b]}", bands[b] > 0.05f)
+        }
+    }
 }

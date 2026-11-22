@@ -20,7 +20,9 @@ import kotlin.math.tanh
 
 /**
  * Real-time PCM AudioProcessor attached directly to ExoPlayer's audio pipeline.
- * - Extracts genuine 16-band energy magnitudes from decoded PCM samples (zero RECORD_AUDIO permission needed).
+ * - Supports both PCM 16-bit and PCM Float streams.
+ * - Computes genuine 16-band DFT spectral energy + RMS amplitude across all 16 bands
+ *   so every visualizer bar reacts dynamically to audio volume and timbre.
  * - Applies software 5-band Biquad Peaking EQ + Low-Shelf Bass Boost + 3D Stereo Widener + Loudness Gain
  *   when hardware AudioEffects are unavailable, plus Left/Right stereo balance on all devices.
  */
@@ -33,6 +35,9 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
         private val ZERO_BANDS = FloatArray(BAND_COUNT) { 0f }
         private const val MAX_CHANNELS = 2
         private const val NUM_EQ_BANDS = 5
+        private const val FFT_SAMPLES = 64
+        // Bin indices mapped across 1..30 (Nyquist/2 region) with smooth spread so all 16 bars dance vividly
+        private val DFT_BIN_MAP = intArrayOf(1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 15, 18, 21, 24, 27, 30)
     }
 
     private val _spectrumFlow = MutableStateFlow(ZERO_BANDS)
@@ -66,6 +71,24 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
     var softwareLoudnessGainMb: Int = 0 // 0..1500
 
     private val smoothed = FloatArray(BAND_COUNT) { 0f }
+    private val monoWindow = FloatArray(FFT_SAMPLES) { 0f }
+
+    // Precomputed Hann window + cosine/sine DFT basis tables for zero-allocation audio thread analysis
+    private val hannWindow = FloatArray(FFT_SAMPLES) { n ->
+        (0.5 - 0.5 * cos(2.0 * PI * n / (FFT_SAMPLES - 1))).toFloat()
+    }
+    private val cosTable = Array(BAND_COUNT) { b ->
+        val k = DFT_BIN_MAP[b]
+        FloatArray(FFT_SAMPLES) { n ->
+            cos(2.0 * PI * k * n / FFT_SAMPLES).toFloat()
+        }
+    }
+    private val sinTable = Array(BAND_COUNT) { b ->
+        val k = DFT_BIN_MAP[b]
+        FloatArray(FFT_SAMPLES) { n ->
+            sin(2.0 * PI * k * n / FFT_SAMPLES).toFloat()
+        }
+    }
 
     // Per-filter coefficients (b0, b1, b2, a1, a2 normalized by a0) for 5 EQ bands + 1 Bass shelf
     private class BiquadCoeff {
@@ -197,7 +220,10 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-        return if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) {
+        return if (
+            inputAudioFormat.encoding == C.ENCODING_PCM_16BIT ||
+            inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        ) {
             currentSampleRate = inputAudioFormat.sampleRate.toFloat().coerceAtLeast(8000f)
             coeffsDirty = true
             inputAudioFormat
@@ -214,6 +240,11 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
 
         val outputBuffer = replaceOutputBuffer(remaining)
         val channels = inputAudioFormat.channelCount.coerceAtLeast(1)
+        val isFloatPcm = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
+        val bytesPerSample = if (isFloatPcm) 4 else 2
+        val totalSamples = remaining / bytesPerSample
+        val frameCount = (totalSamples / channels).coerceAtLeast(1)
+
         val currentBalance = balance.coerceIn(-1f, 1f)
         val leftGain = if (currentBalance > 0f) (1f - currentBalance) else 1f
         val rightGain = if (currentBalance < 0f) (1f + currentBalance) else 1f
@@ -226,18 +257,17 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
         val loudnessLinear = if (applyLoudness) 10.0.pow(softwareLoudnessGainMb / 2000.0).toFloat() else 1f
         val needsSoftLimiter = applyEq || applyBass || applyVirt || applyLoudness
 
-        val shortCount = remaining / 2
-        val bandEnergy = FloatArray(BAND_COUNT)
-        val bandCounts = IntArray(BAND_COUNT)
-
         val readBuffer = inputBuffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
-        val frameCount = (shortCount / channels).coerceAtLeast(1)
-        var prevSample = 0f
+        monoWindow.fill(0f)
+        var energySumSq = 0f
+        val sampleStep = (frameCount.toFloat() / FFT_SAMPLES).coerceAtLeast(1f)
+        var nextCaptureFrame = 0f
+        var capturedCount = 0
 
         if (channels == 2) {
             for (frameIdx in 0 until frameCount) {
-                var left = readBuffer.short / 32768f
-                var right = readBuffer.short / 32768f
+                var left = if (isFloatPcm) readBuffer.float else (readBuffer.short / 32768f)
+                var right = if (isFloatPcm) readBuffer.float else (readBuffer.short / 32768f)
 
                 if (applyEq) {
                     val lStates = eqStates[0]
@@ -275,24 +305,26 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
                     if (abs(right) > 0.92f) right = tanh(right.toDouble()).toFloat()
                 }
 
-                val outL = (left * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                val outR = (right * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                if (isFloatPcm) {
+                    outputBuffer.putFloat(left.coerceIn(-1f, 1f))
+                    outputBuffer.putFloat(right.coerceIn(-1f, 1f))
+                } else {
+                    val outL = (left * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                    val outR = (right * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                    outputBuffer.putShort(outL.toShort())
+                    outputBuffer.putShort(outR.toShort())
+                }
 
-                outputBuffer.putShort(outL.toShort())
-                outputBuffer.putShort(outR.toShort())
-
-                val norm = abs(left).coerceIn(0f, 1f)
-                val delta = abs(norm - prevSample)
-                prevSample = norm
-                val baseBand = (frameIdx * BAND_COUNT) / frameCount
-                val hfShift = (delta * 10f).toInt().coerceIn(0, BAND_COUNT - 1)
-                val band = ((baseBand + hfShift) / 2).coerceIn(0, BAND_COUNT - 1)
-                bandEnergy[band] += norm * norm
-                bandCounts[band]++
+                val mono = 0.5f * (left + right)
+                energySumSq += mono * mono
+                if (capturedCount < FFT_SAMPLES && frameIdx >= nextCaptureFrame.toInt()) {
+                    monoWindow[capturedCount++] = mono
+                    nextCaptureFrame += sampleStep
+                }
             }
         } else {
-            for (i in 0 until shortCount) {
-                var sample = readBuffer.short / 32768f
+            for (i in 0 until totalSamples) {
+                var sample = if (isFloatPcm) readBuffer.float else (readBuffer.short / 32768f)
                 val ch = i % channels
                 if (ch < MAX_CHANNELS) {
                     if (applyEq) {
@@ -312,19 +344,20 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
                     sample = tanh(sample.toDouble()).toFloat()
                 }
 
-                val outSample = (sample * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                outputBuffer.putShort(outSample.toShort())
+                if (isFloatPcm) {
+                    outputBuffer.putFloat(sample.coerceIn(-1f, 1f))
+                } else {
+                    val outSample = (sample * 32767f).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                    outputBuffer.putShort(outSample.toShort())
+                }
 
                 if (ch == 0) {
                     val frameIdx = i / channels
-                    val norm = abs(sample).coerceIn(0f, 1f)
-                    val delta = abs(norm - prevSample)
-                    prevSample = norm
-                    val baseBand = (frameIdx * BAND_COUNT) / frameCount
-                    val hfShift = (delta * 10f).toInt().coerceIn(0, BAND_COUNT - 1)
-                    val band = ((baseBand + hfShift) / 2).coerceIn(0, BAND_COUNT - 1)
-                    bandEnergy[band] += norm * norm
-                    bandCounts[band]++
+                    energySumSq += sample * sample
+                    if (capturedCount < FFT_SAMPLES && frameIdx >= nextCaptureFrame.toInt()) {
+                        monoWindow[capturedCount++] = sample
+                        nextCaptureFrame += sampleStep
+                    }
                 }
             }
         }
@@ -332,15 +365,33 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
         inputBuffer.position(inputBuffer.limit())
         outputBuffer.flip()
 
-        // Smooth bands for responsive, fluid UI animation directly tied to audio PCM energy
+        // Compute real 16-bin DFT energy blended with buffer RMS loudness so all 16 bars react together
+        val bufferRms = sqrt(energySumSq / frameCount).coerceIn(0f, 1f)
+        val volumeFloor = (bufferRms * 1.45f).coerceIn(0f, 0.72f)
+        val activeLen = capturedCount.coerceAtLeast(1)
+
         var updated = false
         val next = FloatArray(BAND_COUNT)
         for (b in 0 until BAND_COUNT) {
-            val rms = if (bandCounts[b] > 0) sqrt(bandEnergy[b] / bandCounts[b]) else 0f
-            val scaled = (rms * 2.4f).coerceIn(0f, 1f)
-            smoothed[b] = smoothed[b] * 0.55f + scaled * 0.45f
+            var re = 0f
+            var im = 0f
+            val cosRow = cosTable[b]
+            val sinRow = sinTable[b]
+            for (n in 0 until activeLen) {
+                val wSample = monoWindow[n] * hannWindow[n]
+                re += wSample * cosRow[n]
+                im -= wSample * sinRow[n]
+            }
+            val mag = sqrt(re * re + im * im) / (activeLen * 0.25f)
+            // High frequencies naturally carry less energy in speech/nasheeds; apply gentle tilt compensation
+            val tiltGain = 1.0f + (b / (BAND_COUNT - 1f)) * 1.15f
+            val target = (mag * tiltGain * 1.35f + volumeFloor * 0.42f).coerceIn(0f, 1f)
+
+            // Fast attack on vocal/beat spikes, smooth liquid decay
+            val alpha = if (target > smoothed[b]) 0.62f else 0.26f
+            smoothed[b] = smoothed[b] * (1f - alpha) + target * alpha
             next[b] = smoothed[b]
-            if (next[b] > 0.005f) updated = true
+            if (next[b] > 0.006f) updated = true
         }
         _spectrumFlow.value = if (updated) next else ZERO_BANDS
     }

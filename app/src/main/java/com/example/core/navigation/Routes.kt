@@ -11,6 +11,9 @@ sealed interface AppRoute {
     data object Onboarding : AppRoute
 
     @Serializable
+    data object MainPager : AppRoute
+
+    @Serializable
     data object Home : AppRoute
 
     @Serializable

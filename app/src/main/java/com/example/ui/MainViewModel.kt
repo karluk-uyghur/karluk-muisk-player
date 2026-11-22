@@ -329,6 +329,24 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun renameSong(songId: Long, newTitle: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.renameSong(songId, newTitle)
+        }
+    }
+
+    fun setSongCustomBackground(songId: Long, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.saveSongBackgroundFromUri(songId, uri)
+        }
+    }
+
+    fun clearSongCustomBackground(songId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.clearSongBackground(songId)
+        }
+    }
+
     fun clearArtworkCache() {
         viewModelScope.launch(Dispatchers.IO) {
             repo.clearArtworkCache()
@@ -421,6 +439,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     fun setAutoScanOnStartup(autoScan: Boolean) {
         viewModelScope.launch { prefs.setAutoScanOnStartup(autoScan) }
+    }
+
+    fun setCustomBackground(uri: Uri) {
+        viewModelScope.launch { prefs.saveCustomBackgroundFromUri(uri) }
+    }
+
+    fun clearCustomBackground() {
+        viewModelScope.launch { prefs.clearCustomBackground() }
     }
 
     override fun onCleared() {

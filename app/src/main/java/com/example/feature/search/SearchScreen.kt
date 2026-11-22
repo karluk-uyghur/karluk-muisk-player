@@ -38,11 +38,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.core.common.ShareUtils
 import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.KarlukBackground
@@ -53,6 +55,7 @@ import com.example.domain.model.PlaybackState
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.feature.common.AddToPlaylistDialog
+import com.example.feature.common.RenameSongDialog
 import com.example.feature.common.SongDetailsDialog
 import com.example.feature.common.SongOptionsDialog
 
@@ -72,14 +75,17 @@ fun SearchScreen(
     onAddToQueue: (List<Song>) -> Unit,
     onAddToPlaylist: (Long, List<Long>) -> Unit,
     onCreatePlaylist: (String, List<Long>) -> Unit,
+    onRenameSong: (Long, String) -> Unit = { _, _ -> },
     onRemoveFromLibrary: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
     var query by rememberSaveable { mutableStateOf("") }
     var optionSong by remember { mutableStateOf<Song?>(null) }
     var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
+    var renameTargetSong by remember { mutableStateOf<Song?>(null) }
 
     val results = remember(query, allSongs) {
         val q = query.trim().lowercase()
@@ -193,8 +199,7 @@ fun SearchScreen(
                                     onPlaySongs(results, idx)
                                 },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
-                                onMoreClick = { optionSong = song },
-                                onDeleteClick = { deleteTargetSong = song }
+                                onMoreClick = { optionSong = song }
                             )
                         }
                     }
@@ -212,8 +217,18 @@ fun SearchScreen(
             onAddToQueue = { onAddToQueue(listOf(song)) },
             onToggleFavorite = { onToggleFavorite(song.id) },
             onAddToPlaylist = { playlistPickerSong = song },
+            onRename = { renameTargetSong = song },
+            onShare = { ShareUtils.shareSong(context, song) },
             onShowDetails = { detailSong = song },
-            onRemoveFromLibrary = { onRemoveFromLibrary(song.id) }
+            onRemoveFromLibrary = { deleteTargetSong = song }
+        )
+    }
+
+    renameTargetSong?.let { song ->
+        RenameSongDialog(
+            song = song,
+            onDismiss = { renameTargetSong = null },
+            onConfirm = { newTitle -> onRenameSong(song.id, newTitle) }
         )
     }
 

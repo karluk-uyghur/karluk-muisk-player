@@ -47,7 +47,8 @@ data class KarlukDesignTokens(
     val isLightTheme: Boolean,
     val glassOpacity: Float,
     val reducedMotion: Boolean,
-    val lowPowerMode: Boolean
+    val lowPowerMode: Boolean,
+    val customBackgroundUri: String? = null
 )
 
 val LocalKarlukTokens = staticCompositionLocalOf {
@@ -119,7 +120,8 @@ fun KarlukTheme(
             isLightTheme = true,
             glassOpacity = opacity,
             reducedMotion = settings.reducedMotion,
-            lowPowerMode = settings.lowPowerMode
+            lowPowerMode = settings.lowPowerMode,
+            customBackgroundUri = settings.customBackgroundUri
         )
     } else {
         KarlukDesignTokens(
@@ -139,7 +141,8 @@ fun KarlukTheme(
             isLightTheme = false,
             glassOpacity = opacity,
             reducedMotion = settings.reducedMotion,
-            lowPowerMode = settings.lowPowerMode
+            lowPowerMode = settings.lowPowerMode,
+            customBackgroundUri = settings.customBackgroundUri
         )
     }
 

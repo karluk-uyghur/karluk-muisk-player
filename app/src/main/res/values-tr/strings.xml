@@ -60,6 +60,13 @@
     <string name="action_retry">Tekrar Dene</string>
     <string name="action_save">Kaydet</string>
     <string name="action_clear">Temizle</string>
+    <string name="action_play">Oynat</string>
+    <string name="action_share">Paylaş</string>
+    <string name="rename_nasheed_title">Neşid Adını Değiştir</string>
+    <string name="rename_nasheed_hint">Yeni neşid adı</string>
+    <string name="library_menu_title">Görünüm ve Filtreler</string>
+    <string name="library_category">Kategori</string>
+    <string name="share_failed">Bu neşid paylaşılamadı</string>
     <string name="selected_count">%1$d seçildi</string>
 
     <!-- Sort & Filter -->
@@ -88,6 +95,9 @@
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">Şimdi Oynatılıyor</string>
+    <string name="now_playing_custom_bg">Neşid Arka Planı</string>
+    <string name="now_playing_custom_bg_change">Arka Planı Değiştir</string>
+    <string name="now_playing_custom_bg_reset">Neşid Arka Planını Kaldır</string>
     <string name="playback_speed">Hız</string>
     <string name="lyrics_title">Metin</string>
     <string name="lyrics_import_lrc">.LRC İçe Aktar</string>
@@ -182,6 +192,11 @@
     <string name="theme_glass_opacity">Cam Şeffaflığı</string>
     <string name="theme_reduced_motion">Azaltılmış Hareket</string>
     <string name="theme_low_power">Düşük Güç Modu</string>
+    <string name="theme_custom_bg_title">Arka Plan Görseli</string>
+    <string name="theme_custom_bg_pick">Galeriden Seç</string>
+    <string name="theme_custom_bg_active">Galeriden özel arka plan kullanılıyor</string>
+    <string name="theme_custom_bg_default">Varsayılan tema arka planı</string>
+    <string name="theme_custom_bg_reset">Arka Planı Sıfırla</string>
 
     <!-- Storage & About -->
     <string name="storage_title">Depolama Bilgisi</string>

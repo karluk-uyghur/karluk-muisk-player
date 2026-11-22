@@ -1,6 +1,7 @@
 package com.example.data.datastore
 
 import android.content.Context
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -15,8 +16,12 @@ import com.example.domain.model.AppLanguage
 import com.example.domain.model.EqualizerPreset
 import com.example.domain.model.ThemeAtmosphere
 import com.example.domain.model.UserSettings
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "karluk_preferences")
 
@@ -40,7 +45,7 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     private object Keys {
-        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_welcome_v2_done")
         val LANGUAGE = stringPreferencesKey("language")
         val THEME_ATMOSPHERE = stringPreferencesKey("theme_atmosphere")
         val ACCENT_OPTION = stringPreferencesKey("accent_option")
@@ -52,6 +57,7 @@ class UserPreferencesRepository(private val context: Context) {
         val AUTO_SCAN = booleanPreferencesKey("auto_scan")
         val LAST_SONG_ID = longPreferencesKey("last_song_id")
         val LAST_POSITION_MS = longPreferencesKey("last_position_ms")
+        val CUSTOM_BACKGROUND_URI = stringPreferencesKey("custom_background_uri")
 
         val EQ_ENABLED = booleanPreferencesKey("eq_enabled")
         val EQ_PRESET = stringPreferencesKey("eq_preset")
@@ -67,7 +73,7 @@ class UserPreferencesRepository(private val context: Context) {
 
     val userSettingsFlow: Flow<UserSettings> = context.dataStore.data.map { prefs ->
         val onboardingDone = prefs[Keys.ONBOARDING_DONE]
-            ?: localeMirrorPrefs.getBoolean("onboarding_done", false)
+            ?: localeMirrorPrefs.getBoolean("onboarding_welcome_v2_done", false)
         UserSettings(
             onboardingCompleted = onboardingDone,
             language = AppLanguage.fromCode(prefs[Keys.LANGUAGE] ?: getSavedLanguageSync().code),
@@ -80,7 +86,9 @@ class UserPreferencesRepository(private val context: Context) {
             gaplessPlayback = prefs[Keys.GAPLESS_PLAYBACK] ?: true,
             autoScanOnStartup = prefs[Keys.AUTO_SCAN] ?: true,
             lastSongId = prefs[Keys.LAST_SONG_ID] ?: -1L,
-            lastPositionMs = prefs[Keys.LAST_POSITION_MS] ?: 0L
+            lastPositionMs = prefs[Keys.LAST_POSITION_MS] ?: 0L,
+            customBackgroundUri = prefs[Keys.CUSTOM_BACKGROUND_URI]?.takeIf { it.isNotBlank() }
+                ?: localeMirrorPrefs.getString("custom_background_uri", null)?.takeIf { it.isNotBlank() }
         )
     }
 
@@ -112,18 +120,19 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     fun getOnboardingCompletedSync(): Boolean {
-        return localeMirrorPrefs.getBoolean("onboarding_done", false)
+        return localeMirrorPrefs.getBoolean("onboarding_welcome_v2_done", false)
     }
 
     fun getInitialSettingsSync(): UserSettings {
         return UserSettings(
             onboardingCompleted = getOnboardingCompletedSync(),
-            language = getSavedLanguageSync()
+            language = getSavedLanguageSync(),
+            customBackgroundUri = localeMirrorPrefs.getString("custom_background_uri", null)?.takeIf { it.isNotBlank() }
         )
     }
 
     fun setOnboardingCompletedSync(completed: Boolean) {
-        localeMirrorPrefs.edit().putBoolean("onboarding_done", completed).apply()
+        localeMirrorPrefs.edit().putBoolean("onboarding_welcome_v2_done", completed).apply()
     }
 
     suspend fun setLanguage(language: AppLanguage) {
@@ -166,6 +175,42 @@ class UserPreferencesRepository(private val context: Context) {
 
     suspend fun setAutoScanOnStartup(autoScan: Boolean) {
         context.dataStore.edit { it[Keys.AUTO_SCAN] = autoScan }
+    }
+
+    suspend fun saveCustomBackgroundFromUri(sourceUri: Uri): String? = withContext(Dispatchers.IO) {
+        val bgDir = File(context.filesDir, "backgrounds").apply { if (!exists()) mkdirs() }
+        val destFile = File(bgDir, "bg_${System.currentTimeMillis()}.jpg")
+        val copied = try {
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
+                }
+            } != null
+        } catch (_: Exception) {
+            false
+        }
+        if (!copied || !destFile.exists() || destFile.length() <= 0L) {
+            destFile.delete()
+            return@withContext null
+        }
+        bgDir.listFiles()?.forEach { file ->
+            if (file.absolutePath != destFile.absolutePath) {
+                file.delete()
+            }
+        }
+        val savedUri = Uri.fromFile(destFile).toString()
+        localeMirrorPrefs.edit().putString("custom_background_uri", savedUri).apply()
+        context.dataStore.edit { it[Keys.CUSTOM_BACKGROUND_URI] = savedUri }
+        savedUri
+    }
+
+    suspend fun clearCustomBackground() = withContext(Dispatchers.IO) {
+        val bgDir = File(context.filesDir, "backgrounds")
+        if (bgDir.exists()) {
+            bgDir.listFiles()?.forEach { it.delete() }
+        }
+        localeMirrorPrefs.edit().remove("custom_background_uri").apply()
+        context.dataStore.edit { it.remove(Keys.CUSTOM_BACKGROUND_URI) }
     }
 
     suspend fun saveLastPlayback(songId: Long, positionMs: Long) {

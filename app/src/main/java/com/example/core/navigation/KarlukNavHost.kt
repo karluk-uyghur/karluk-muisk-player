@@ -3,9 +3,9 @@ package com.example.core.navigation
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.Favorite
@@ -43,8 +45,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -89,13 +90,19 @@ import com.example.feature.settings.ThemeStudioScreen
 import com.example.feature.splash.OnboardingScreen
 import com.example.feature.splash.SplashScreen
 import com.example.ui.MainViewModel
+import kotlinx.coroutines.launch
 
 private data class BottomTabItem(
-    val route: AppRoute,
+    val pageIndex: Int,
     val icon: ImageVector,
     val labelRes: Int,
     val testTag: String
 )
+
+private object LaunchRecreateState {
+    var skipIntroOnce: Boolean = false
+    var restoreSettingsTabOnce: Boolean = false
+}
 
 @Composable
 fun KarlukNavHost(
@@ -107,6 +114,7 @@ fun KarlukNavHost(
     val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val userSettings by viewModel.userSettings.collectAsStateWithLifecycle()
     val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
@@ -161,7 +169,7 @@ fun KarlukNavHost(
         if (uri != null) {
             viewModel.addSafFolder(uri)
             viewModel.setOnboardingCompleted(true)
-            navController.navigate(AppRoute.Home) {
+            navController.navigate(AppRoute.MainPager) {
                 popUpTo(AppRoute.Onboarding) { inclusive = true }
             }
         }
@@ -179,29 +187,45 @@ fun KarlukNavHost(
         }
     }
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
     val topLevelTabs = remember {
         listOf(
-            BottomTabItem(AppRoute.Home, Icons.Rounded.Home, R.string.nav_home, "nav_home"),
-            BottomTabItem(AppRoute.Library, Icons.Rounded.LibraryMusic, R.string.nav_library, "nav_library"),
-            BottomTabItem(AppRoute.Favorites, Icons.Rounded.Favorite, R.string.nav_favorites, "nav_favorites"),
-            BottomTabItem(AppRoute.AddFiles, Icons.Rounded.CreateNewFolder, R.string.nav_add_files, "nav_add_files"),
-            BottomTabItem(AppRoute.Settings, Icons.Rounded.Settings, R.string.nav_settings, "nav_settings")
+            BottomTabItem(0, Icons.Rounded.Home, R.string.nav_home, "nav_home"),
+            BottomTabItem(1, Icons.Rounded.LibraryMusic, R.string.nav_library, "nav_library"),
+            BottomTabItem(2, Icons.Rounded.Favorite, R.string.nav_favorites, "nav_favorites"),
+            BottomTabItem(3, Icons.Rounded.CreateNewFolder, R.string.nav_add_files, "nav_add_files"),
+            BottomTabItem(4, Icons.Rounded.Settings, R.string.nav_settings, "nav_settings")
         )
     }
 
-    val isTopLevelRoute = topLevelTabs.any { tab ->
-        currentDestination?.hasRoute(tab.route::class) == true
+    val initialPage = remember {
+        if (LaunchRecreateState.restoreSettingsTabOnce) {
+            LaunchRecreateState.restoreSettingsTabOnce = false
+            4
+        } else {
+            0
+        }
     }
-    val isHomeRoute = currentDestination?.hasRoute(AppRoute.Home::class) == true
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { topLevelTabs.size })
 
-    fun navigateTopLevel(route: AppRoute) {
-        navController.navigate(route) {
-            popUpTo(AppRoute.Home) { saveState = true }
-            launchSingleTop = true
-            restoreState = true
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val isTopLevelRoute = currentDestination?.hasRoute<AppRoute.MainPager>() == true
+    val isHomeRoute = isTopLevelRoute && pagerState.currentPage == 0
+
+    fun navigateTopLevelPage(pageIndex: Int) {
+        val target = pageIndex.coerceIn(0, topLevelTabs.lastIndex)
+        if (isTopLevelRoute) {
+            coroutineScope.launch {
+                pagerState.animateScrollToPage(target)
+            }
+        } else {
+            coroutineScope.launch {
+                pagerState.scrollToPage(target)
+                navController.navigate(AppRoute.MainPager) {
+                    popUpTo<AppRoute.MainPager> { inclusive = false }
+                    launchSingleTop = true
+                }
+            }
         }
     }
 
@@ -220,10 +244,10 @@ fun KarlukNavHost(
                     ) {
                         Spacer(Modifier.weight(1f))
                         topLevelTabs.forEach { tab ->
-                            val selected = currentDestination?.hasRoute(tab.route::class) == true
+                            val selected = pagerState.currentPage == tab.pageIndex
                             NavigationRailItem(
                                 selected = selected,
-                                onClick = { navigateTopLevel(tab.route) },
+                                onClick = { navigateTopLevelPage(tab.pageIndex) },
                                 icon = { Icon(tab.icon, contentDescription = stringResource(tab.labelRes)) },
                                 label = {
                                     Text(
@@ -278,10 +302,10 @@ fun KarlukNavHost(
                                         modifier = Modifier.border(0.6.dp, tokens.glassBorder)
                                     ) {
                                         topLevelTabs.forEach { tab ->
-                                            val selected = currentDestination?.hasRoute(tab.route::class) == true
+                                            val selected = pagerState.currentPage == tab.pageIndex
                                             NavigationBarItem(
                                                 selected = selected,
-                                                onClick = { navigateTopLevel(tab.route) },
+                                                onClick = { navigateTopLevelPage(tab.pageIndex) },
                                                 icon = {
                                                     Icon(
                                                         imageVector = tab.icon,
@@ -322,18 +346,21 @@ fun KarlukNavHost(
                             startDestination = AppRoute.Splash
                         ) {
                             composable<AppRoute.Splash> {
+                                val skipOnce = remember {
+                                    LaunchRecreateState.skipIntroOnce.also {
+                                        LaunchRecreateState.skipIntroOnce = false
+                                    }
+                                }
                                 SplashScreen(
-                                    onboardingCompleted = userSettings.onboardingCompleted || hasAudioPermission,
+                                    onboardingCompleted = userSettings.onboardingCompleted,
+                                    skipIntroOnce = skipOnce,
                                     onNavigateToOnboarding = {
                                         navController.navigate(AppRoute.Onboarding) {
                                             popUpTo(AppRoute.Splash) { inclusive = true }
                                         }
                                     },
                                     onNavigateToHome = {
-                                        if (hasAudioPermission && !userSettings.onboardingCompleted) {
-                                            viewModel.setOnboardingCompleted(true)
-                                        }
-                                        navController.navigate(AppRoute.Home) {
+                                        navController.navigate(AppRoute.MainPager) {
                                             popUpTo(AppRoute.Splash) { inclusive = true }
                                         }
                                     }
@@ -343,11 +370,14 @@ fun KarlukNavHost(
                             composable<AppRoute.Onboarding> {
                                 OnboardingScreen(
                                     currentLanguage = userSettings.language,
-                                    onSelectLanguage = onLanguageChanged,
+                                    onSelectLanguage = { lang ->
+                                        LaunchRecreateState.skipIntroOnce = true
+                                        onLanguageChanged(lang)
+                                    },
                                     onRequestAudioPermission = {
                                         viewModel.setOnboardingCompleted(true)
                                         permissionLauncher.launch(permissionsToRequest)
-                                        navController.navigate(AppRoute.Home) {
+                                        navController.navigate(AppRoute.MainPager) {
                                             popUpTo(AppRoute.Onboarding) { inclusive = true }
                                         }
                                     },
@@ -356,132 +386,159 @@ fun KarlukNavHost(
                                     },
                                     onContinueOffline = {
                                         viewModel.setOnboardingCompleted(true)
-                                        navController.navigate(AppRoute.Home) {
+                                        navController.navigate(AppRoute.MainPager) {
                                             popUpTo(AppRoute.Onboarding) { inclusive = true }
                                         }
                                     }
                                 )
                             }
 
-                            composable<AppRoute.Home> {
-                                val isNightMode = userSettings.themeAtmosphere != ThemeAtmosphere.SILVER_FROST
-                                HomeDashboardScreen(
-                                    playbackState = playbackState,
-                                    spectrum = spectrum,
-                                    allSongsCount = allSongs.size,
-                                    recentSongs = historySongs,
-                                    onOpenNowPlaying = { navController.navigate(AppRoute.NowPlaying) },
-                                    onOpenSearch = { navController.navigate(AppRoute.Search) },
-                                    onOpenSettings = { navigateTopLevel(AppRoute.Settings) },
-                                    onOpenLibrary = { navigateTopLevel(AppRoute.Library) },
-                                    onOpenFavorites = { navigateTopLevel(AppRoute.Favorites) },
-                                    onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
-                                    onOpenAddFiles = { navigateTopLevel(AppRoute.AddFiles) },
-                                    onOpenHistory = { navController.navigate(AppRoute.History) },
-                                    isNightMode = isNightMode,
-                                    onToggleDayNight = {
-                                        viewModel.setThemeAtmosphere(
-                                            if (isNightMode) ThemeAtmosphere.SILVER_FROST else ThemeAtmosphere.DEEP_NAVY
-                                        )
-                                    },
-                                    onTogglePlayPause = { viewModel.togglePlayPause() },
-                                    onSkipNext = { viewModel.skipToNext() },
-                                    onSkipPrev = { viewModel.skipToPrevious() },
-                                    onSeekTo = { viewModel.seekTo(it) },
-                                    onToggleShuffle = { viewModel.toggleShuffle() },
-                                    onCycleRepeat = { viewModel.cycleRepeatMode() },
-                                    onPlaySong = { list, idx -> viewModel.playSongs(list, idx) }
-                                )
-                            }
+                            composable<AppRoute.MainPager> {
+                                BackHandler(enabled = pagerState.currentPage != 0) {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(0)
+                                    }
+                                }
 
-                            composable<AppRoute.Library> {
-                                LibraryScreen(
-                                    allSongs = allSongs,
-                                    albums = albums,
-                                    artists = artists,
-                                    folders = folders,
-                                    playlists = playlists,
-                                    historySongs = historySongs,
-                                    playbackState = playbackState,
-                                    isScanning = isScanning,
-                                    hasAudioPermission = hasAudioPermission,
-                                    onRequestPermission = { permissionLauncher.launch(permissionsToRequest) },
-                                    onRescan = { viewModel.rescanMedia() },
-                                    onOpenSearch = { navController.navigate(AppRoute.Search) },
-                                    onOpenAddFiles = { navigateTopLevel(AppRoute.AddFiles) },
-                                    onOpenAlbum = { name -> navController.navigate(AppRoute.AlbumDetail(name)) },
-                                    onOpenArtist = { name -> navController.navigate(AppRoute.ArtistDetail(name)) },
-                                    onOpenFolder = { f -> navController.navigate(AppRoute.FolderDetail(f.path, f.name)) },
-                                    onOpenPlaylist = { id -> navController.navigate(AppRoute.PlaylistDetail(id)) },
-                                    onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
-                                    onShuffleSongs = { list -> viewModel.shuffleAndPlay(list) },
-                                    onToggleFavorite = { viewModel.toggleFavorite(it) },
-                                    onBatchFavorite = { viewModel.addSongsToFavorites(it) },
-                                    onPlayNext = { viewModel.playNext(it) },
-                                    onAddToQueue = { viewModel.addToQueue(it) },
-                                    onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
-                                    onRenamePlaylist = { pid, name -> viewModel.renamePlaylist(pid, name) },
-                                    onDeletePlaylist = { viewModel.deletePlaylist(it) },
-                                    onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
-                                    onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
-                                )
-                            }
+                                HorizontalPager(
+                                    state = pagerState,
+                                    beyondViewportPageCount = 1,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .testTag("main_horizontal_pager")
+                                ) { page ->
+                                    when (page) {
+                                        0 -> {
+                                            val isNightMode = userSettings.themeAtmosphere != ThemeAtmosphere.SILVER_FROST
+                                            HomeDashboardScreen(
+                                                playbackState = playbackState,
+                                                spectrum = spectrum,
+                                                allSongsCount = allSongs.size,
+                                                recentSongs = historySongs,
+                                                onOpenNowPlaying = { navController.navigate(AppRoute.NowPlaying) },
+                                                onOpenSearch = { navController.navigate(AppRoute.Search) },
+                                                onOpenSettings = { navigateTopLevelPage(4) },
+                                                onOpenLibrary = { navigateTopLevelPage(1) },
+                                                onOpenFavorites = { navigateTopLevelPage(2) },
+                                                onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
+                                                onOpenAddFiles = { navigateTopLevelPage(3) },
+                                                onOpenHistory = { navController.navigate(AppRoute.History) },
+                                                isNightMode = isNightMode,
+                                                onToggleDayNight = {
+                                                    viewModel.setThemeAtmosphere(
+                                                        if (isNightMode) ThemeAtmosphere.SILVER_FROST else ThemeAtmosphere.DEEP_NAVY
+                                                    )
+                                                },
+                                                onTogglePlayPause = { viewModel.togglePlayPause() },
+                                                onSkipNext = { viewModel.skipToNext() },
+                                                onSkipPrev = { viewModel.skipToPrevious() },
+                                                onSeekTo = { viewModel.seekTo(it) },
+                                                onToggleShuffle = { viewModel.toggleShuffle() },
+                                                onCycleRepeat = { viewModel.cycleRepeatMode() },
+                                                onPlaySong = { list, idx -> viewModel.playSongs(list, idx) },
+                                                onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) }
+                                            )
+                                        }
 
-                            composable<AppRoute.Favorites> {
-                                FavoritesScreen(
-                                    favoriteSongs = favoriteSongs,
-                                    playlists = playlists,
-                                    playbackState = playbackState,
-                                    onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
-                                    onShuffleSongs = { list -> viewModel.shuffleAndPlay(list) },
-                                    onToggleFavorite = { viewModel.toggleFavorite(it) },
-                                    onPlayNext = { viewModel.playNext(it) },
-                                    onAddToQueue = { viewModel.addToQueue(it) },
-                                    onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
-                                    onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
-                                    onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
-                                )
-                            }
+                                        1 -> {
+                                            LibraryScreen(
+                                                allSongs = allSongs,
+                                                albums = albums,
+                                                artists = artists,
+                                                folders = folders,
+                                                playlists = playlists,
+                                                historySongs = historySongs,
+                                                playbackState = playbackState,
+                                                isScanning = isScanning,
+                                                hasAudioPermission = hasAudioPermission,
+                                                onRequestPermission = { permissionLauncher.launch(permissionsToRequest) },
+                                                onRescan = { viewModel.rescanMedia() },
+                                                onOpenSearch = { navController.navigate(AppRoute.Search) },
+                                                onOpenAddFiles = { navigateTopLevelPage(3) },
+                                                onOpenAlbum = { name -> navController.navigate(AppRoute.AlbumDetail(name)) },
+                                                onOpenArtist = { name -> navController.navigate(AppRoute.ArtistDetail(name)) },
+                                                onOpenFolder = { f -> navController.navigate(AppRoute.FolderDetail(f.path, f.name)) },
+                                                onOpenPlaylist = { id -> navController.navigate(AppRoute.PlaylistDetail(id)) },
+                                                onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
+                                                onShuffleSongs = { list -> viewModel.shuffleAndPlay(list) },
+                                                onToggleFavorite = { viewModel.toggleFavorite(it) },
+                                                onBatchFavorite = { viewModel.addSongsToFavorites(it) },
+                                                onPlayNext = { viewModel.playNext(it) },
+                                                onAddToQueue = { viewModel.addToQueue(it) },
+                                                onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                                onRenamePlaylist = { pid, name -> viewModel.renamePlaylist(pid, name) },
+                                                onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                                                onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
+                                                onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
+                                                onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
+                                            )
+                                        }
 
-                            composable<AppRoute.AddFiles> {
-                                AddFilesScreen(
-                                    safFolders = safFolders,
-                                    excludedFolders = excludedFolders,
-                                    deviceFolders = folders,
-                                    storageStats = storageStats,
-                                    isScanning = isScanning,
-                                    hasAudioPermission = hasAudioPermission,
-                                    onRequestPermission = { permissionLauncher.launch(permissionsToRequest) },
-                                    onRescanMedia = { viewModel.rescanMedia() },
-                                    onImportAudioFiles = { uris -> viewModel.importAudioFiles(uris, playImmediately = true) },
-                                    onAddSafFolder = { uri -> viewModel.addSafFolder(uri) },
-                                    onRemoveSafFolder = { viewModel.removeSafFolder(it) },
-                                    onRestoreExcludedFolder = { viewModel.restoreFolder(it) },
-                                    onOpenFolderDetail = { f -> navController.navigate(AppRoute.FolderDetail(f.path, f.name)) },
-                                    onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) }
-                                )
-                            }
+                                        2 -> {
+                                            FavoritesScreen(
+                                                favoriteSongs = favoriteSongs,
+                                                playlists = playlists,
+                                                playbackState = playbackState,
+                                                onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
+                                                onShuffleSongs = { list -> viewModel.shuffleAndPlay(list) },
+                                                onToggleFavorite = { viewModel.toggleFavorite(it) },
+                                                onPlayNext = { viewModel.playNext(it) },
+                                                onAddToQueue = { viewModel.addToQueue(it) },
+                                                onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
+                                                onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                                onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
+                                                onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
+                                            )
+                                        }
 
-                            composable<AppRoute.Settings> {
-                                SettingsScreen(
-                                    settings = userSettings,
-                                    playbackState = playbackState,
-                                    onSelectLanguage = onLanguageChanged,
-                                    onToggleDayNight = { night ->
-                                        viewModel.setThemeAtmosphere(
-                                            if (night) ThemeAtmosphere.DEEP_NAVY else ThemeAtmosphere.SILVER_FROST
-                                        )
-                                    },
-                                    onOpenThemeStudio = { navController.navigate(AppRoute.ThemeStudio) },
-                                    onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
-                                    onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
-                                    onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) },
-                                    onOpenAbout = { navController.navigate(AppRoute.About) },
-                                    onToggleResumePlayback = { viewModel.setResumePlayback(it) },
-                                    onToggleGapless = { viewModel.setGaplessPlayback(it) },
-                                    onToggleAutoScan = { viewModel.setAutoScanOnStartup(it) },
-                                    onClearHistory = { viewModel.clearHistory() }
-                                )
+                                        3 -> {
+                                            AddFilesScreen(
+                                                safFolders = safFolders,
+                                                excludedFolders = excludedFolders,
+                                                deviceFolders = folders,
+                                                storageStats = storageStats,
+                                                isScanning = isScanning,
+                                                hasAudioPermission = hasAudioPermission,
+                                                onRequestPermission = { permissionLauncher.launch(permissionsToRequest) },
+                                                onRescanMedia = { viewModel.rescanMedia() },
+                                                onImportAudioFiles = { uris -> viewModel.importAudioFiles(uris, playImmediately = true) },
+                                                onAddSafFolder = { uri -> viewModel.addSafFolder(uri) },
+                                                onRemoveSafFolder = { viewModel.removeSafFolder(it) },
+                                                onRestoreExcludedFolder = { viewModel.restoreFolder(it) },
+                                                onOpenFolderDetail = { f -> navController.navigate(AppRoute.FolderDetail(f.path, f.name)) },
+                                                onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) }
+                                            )
+                                        }
+
+                                        else -> {
+                                            SettingsScreen(
+                                                settings = userSettings,
+                                                playbackState = playbackState,
+                                                onSelectLanguage = { lang ->
+                                                    LaunchRecreateState.skipIntroOnce = true
+                                                    LaunchRecreateState.restoreSettingsTabOnce = true
+                                                    onLanguageChanged(lang)
+                                                },
+                                                onToggleDayNight = { night ->
+                                                    viewModel.setThemeAtmosphere(
+                                                        if (night) ThemeAtmosphere.DEEP_NAVY else ThemeAtmosphere.SILVER_FROST
+                                                    )
+                                                },
+                                                onOpenThemeStudio = { navController.navigate(AppRoute.ThemeStudio) },
+                                                onPickCustomBackground = { uri -> viewModel.setCustomBackground(uri) },
+                                                onClearCustomBackground = { viewModel.clearCustomBackground() },
+                                                onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
+                                                onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
+                                                onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) },
+                                                onOpenAbout = { navController.navigate(AppRoute.About) },
+                                                onToggleResumePlayback = { viewModel.setResumePlayback(it) },
+                                                onToggleGapless = { viewModel.setGaplessPlayback(it) },
+                                                onToggleAutoScan = { viewModel.setAutoScanOnStartup(it) },
+                                                onClearHistory = { viewModel.clearHistory() }
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
                             composable<AppRoute.NowPlaying> {
@@ -501,7 +558,10 @@ fun KarlukNavHost(
                                     onOpenLyrics = { navController.navigate(AppRoute.Lyrics) },
                                     onOpenQueue = { navController.navigate(AppRoute.Queue) },
                                     onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
-                                    onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) }
+                                    onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
+                                    onPickSongBackground = { songId, uri -> viewModel.setSongCustomBackground(songId, uri) },
+                                    onClearSongBackground = { songId -> viewModel.clearSongCustomBackground(songId) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) }
                                 )
                             }
 
@@ -547,6 +607,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
@@ -576,6 +637,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
@@ -598,7 +660,9 @@ fun KarlukNavHost(
                                     onSelectAccent = { viewModel.setAccentOption(it) },
                                     onChangeGlassOpacity = { viewModel.setGlassOpacity(it) },
                                     onToggleReducedMotion = { viewModel.setReducedMotion(it) },
-                                    onToggleLowPower = { viewModel.setLowPowerMode(it) }
+                                    onToggleLowPower = { viewModel.setLowPowerMode(it) },
+                                    onPickCustomBackground = { uri -> viewModel.setCustomBackground(uri) },
+                                    onClearCustomBackground = { viewModel.clearCustomBackground() }
                                 )
                             }
 
@@ -631,6 +695,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onRemoveFromPlaylist = { songId -> viewModel.removeSongFromPlaylist(route.playlistId, songId) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
@@ -652,6 +717,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
@@ -672,6 +738,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
@@ -693,6 +760,7 @@ fun KarlukNavHost(
                                     onAddToQueue = { viewModel.addToQueue(it) },
                                     onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                     onCreatePlaylist = { name, ids -> viewModel.createPlaylist(name, ids) },
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
                                     onExcludeFolder = { viewModel.excludeFolder(route.folderPath, route.folderName) },
                                     onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )

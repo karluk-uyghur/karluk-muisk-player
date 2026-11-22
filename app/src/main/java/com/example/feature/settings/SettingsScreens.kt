@@ -1,5 +1,11 @@
 package com.example.feature.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,22 +26,27 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -49,13 +61,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.common.FormatUtils
 import com.example.core.designsystem.FormatBadge
@@ -78,6 +93,8 @@ fun SettingsScreen(
     onSelectLanguage: (AppLanguage) -> Unit,
     onToggleDayNight: (Boolean) -> Unit,
     onOpenThemeStudio: () -> Unit,
+    onPickCustomBackground: (Uri) -> Unit,
+    onClearCustomBackground: () -> Unit,
     onOpenEqualizer: () -> Unit,
     onOpenSleepTimer: () -> Unit,
     onOpenStorageInfo: () -> Unit,
@@ -90,6 +107,14 @@ fun SettingsScreen(
     val tokens = LocalKarlukTokens.current
     val isNightMode = settings.themeAtmosphere != ThemeAtmosphere.SILVER_FROST
     var showLanguageDialog by remember { mutableStateOf(false) }
+
+    val galleryPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            onPickCustomBackground(uri)
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.widthIn(max = 640.dp).fillMaxSize()) {
@@ -128,6 +153,76 @@ fun SettingsScreen(
                         onClick = onOpenThemeStudio,
                         modifier = Modifier.testTag("settings_theme_studio_row")
                     )
+                }
+
+                item {
+                    val hasBg = !settings.customBackgroundUri.isNullOrBlank()
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .testTag("settings_custom_bg_row"),
+                        shape = RoundedCornerShape(18.dp),
+                        onClick = {
+                            galleryPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (hasBg) {
+                                AsyncImage(
+                                    model = settings.customBackgroundUri,
+                                    contentDescription = stringResource(R.string.theme_custom_bg_title),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .border(1.dp, tokens.accentPrimary, RoundedCornerShape(10.dp))
+                                )
+                            } else {
+                                Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, tint = tokens.accentPrimary)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.theme_custom_bg_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = tokens.textPrimary
+                                )
+                                Text(
+                                    text = stringResource(
+                                        if (hasBg) R.string.theme_custom_bg_active else R.string.theme_custom_bg_pick
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = tokens.textSecondary
+                                )
+                            }
+                            if (hasBg) {
+                                IconButton(
+                                    onClick = onClearCustomBackground,
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("settings_clear_bg_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.DeleteOutline,
+                                        contentDescription = stringResource(R.string.theme_custom_bg_reset),
+                                        tint = Color(0xFFFF6E8A)
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = tokens.textSecondary
+                                )
+                            }
+                        }
+                    }
                 }
 
                 item {
@@ -352,9 +447,18 @@ fun ThemeStudioScreen(
     onSelectAccent: (AccentOption) -> Unit,
     onChangeGlassOpacity: (Float) -> Unit,
     onToggleReducedMotion: (Boolean) -> Unit,
-    onToggleLowPower: (Boolean) -> Unit
+    onToggleLowPower: (Boolean) -> Unit,
+    onPickCustomBackground: (Uri) -> Unit,
+    onClearCustomBackground: () -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
+    val galleryPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            onPickCustomBackground(uri)
+        }
+    }
     KarlukBackground {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(
@@ -369,6 +473,91 @@ fun ThemeStudioScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    item {
+                        val hasBg = !settings.customBackgroundUri.isNullOrBlank()
+                        GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    text = stringResource(R.string.theme_custom_bg_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = tokens.textPrimary
+                                )
+                                if (hasBg) {
+                                    AsyncImage(
+                                        model = settings.customBackgroundUri,
+                                        contentDescription = stringResource(R.string.theme_custom_bg_title),
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(124.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .border(1.dp, tokens.accentPrimary.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(72.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(tokens.glassSurfaceElevated)
+                                            .border(1.dp, tokens.glassBorder, RoundedCornerShape(14.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Rounded.PhotoLibrary, contentDescription = null, tint = tokens.accentPrimary)
+                                            Text(
+                                                text = stringResource(R.string.theme_custom_bg_default),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = tokens.textSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            galleryPicker.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = tokens.accentPrimary,
+                                            contentColor = Color(0xFF031126)
+                                        ),
+                                        shape = RoundedCornerShape(14.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("theme_pick_bg_btn")
+                                    ) {
+                                        Icon(Icons.Rounded.PhotoLibrary, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(stringResource(R.string.theme_custom_bg_pick), fontWeight = FontWeight.Bold)
+                                    }
+                                    if (hasBg) {
+                                        OutlinedButton(
+                                            onClick = onClearCustomBackground,
+                                            shape = RoundedCornerShape(14.dp),
+                                            modifier = Modifier
+                                                .minimumInteractiveComponentSize()
+                                                .testTag("theme_reset_bg_btn")
+                                        ) {
+                                            Icon(Icons.Rounded.RestartAlt, contentDescription = null, tint = Color(0xFFFF6E8A))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(stringResource(R.string.theme_custom_bg_reset), color = Color(0xFFFF6E8A))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

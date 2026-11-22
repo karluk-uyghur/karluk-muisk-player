@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
@@ -76,6 +77,7 @@ import com.example.core.designsystem.localizedArtist
 import com.example.domain.model.PlaybackState
 import com.example.domain.model.RepeatModeOption
 import com.example.domain.model.Song
+import com.example.feature.common.RenameSongDialog
 
 @Composable
 fun HomeDashboardScreen(
@@ -99,10 +101,12 @@ fun HomeDashboardScreen(
     onSeekTo: (Long) -> Unit,
     onToggleShuffle: () -> Unit,
     onCycleRepeat: () -> Unit,
-    onPlaySong: (List<Song>, Int) -> Unit
+    onPlaySong: (List<Song>, Int) -> Unit,
+    onRenameSong: (Long, String) -> Unit = { _, _ -> }
 ) {
     val tokens = LocalKarlukTokens.current
     val currentSong = playbackState.currentSong
+    var renameTarget by remember { mutableStateOf<Song?>(null) }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -192,28 +196,32 @@ fun HomeDashboardScreen(
                                 .clickable(enabled = currentSong != null, onClick = onOpenNowPlaying),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Spectrum bars behind/below vinyl
-                            SpectrumVisualizerCanvas(
-                                spectrum = spectrum,
-                                isPlaying = playbackState.isPlaying,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(90.dp)
-                                    .align(Alignment.BottomCenter)
-                            )
                             SpinningVinylArtwork(
                                 artworkUri = currentSong?.artworkUri,
                                 isPlaying = playbackState.isPlaying,
-                                size = 168.dp
+                                size = 164.dp,
+                                customBackgroundUri = currentSong?.customBackgroundUri
                             )
                         }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Full-width reactive spectrum bars clearly below the disc
+                        SpectrumVisualizerCanvas(
+                            spectrum = spectrum,
+                            isPlaying = playbackState.isPlaying,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .padding(horizontal = 4.dp)
+                        )
 
                         Spacer(modifier = Modifier.height(10.dp))
 
                         if (currentSong != null) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 FormatBadge(formatLabel = currentSong.formatLabel)
                                 Text(
@@ -221,8 +229,23 @@ fun HomeDashboardScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     color = tokens.textPrimary,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
+                                IconButton(
+                                    onClick = { renameTarget = currentSong },
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .size(36.dp)
+                                        .testTag("home_rename_song_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Edit,
+                                        contentDescription = stringResource(R.string.rename_nasheed_title),
+                                        tint = tokens.accentPrimary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -465,7 +488,7 @@ fun HomeDashboardScreen(
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp)) {
                                         SongArtworkThumb(
-                                            artworkUri = song.artworkUri,
+                                            artworkUri = song.customBackgroundUri?.takeIf { it.isNotBlank() } ?: song.artworkUri,
                                             size = 116.dp
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
@@ -492,6 +515,14 @@ fun HomeDashboardScreen(
             }
         }
         }
+    }
+
+    renameTarget?.let { target ->
+        RenameSongDialog(
+            song = target,
+            onDismiss = { renameTarget = null },
+            onConfirm = { newTitle -> onRenameSong(target.id, newTitle) }
+        )
     }
 }
 

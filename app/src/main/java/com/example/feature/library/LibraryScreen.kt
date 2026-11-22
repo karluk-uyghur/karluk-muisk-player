@@ -1,26 +1,38 @@
 package com.example.feature.library
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
@@ -34,48 +46,62 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.R
-import com.example.core.common.FormatUtils
+import com.example.core.common.ShareUtils
 import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.GlassCard
@@ -93,8 +119,11 @@ import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.domain.model.SortOption
 import com.example.feature.common.AddToPlaylistDialog
+import com.example.feature.common.RenameSongDialog
 import com.example.feature.common.SongDetailsDialog
 import com.example.feature.common.SongOptionsDialog
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
@@ -125,23 +154,26 @@ fun LibraryScreen(
     onRenamePlaylist: (Long, String) -> Unit,
     onDeletePlaylist: (Long) -> Unit,
     onAddToPlaylist: (Long, List<Long>) -> Unit,
+    onRenameSong: (Long, String) -> Unit = { _, _ -> },
     onRemoveFromLibrary: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var sortOption by rememberSaveable { mutableStateOf(SortOption.TITLE) }
     var formatFilter by rememberSaveable { mutableStateOf("ALL") }
-    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     // Multi-select state
     var selectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
 
     // Dialog states
+    var showControlsMenu by remember { mutableStateOf(false) }
     var optionSong by remember { mutableStateOf<Song?>(null) }
     var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerIds by remember { mutableStateOf<List<Long>?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
+    var renameTargetSong by remember { mutableStateOf<Song?>(null) }
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var renamePlaylistTarget by remember { mutableStateOf<Playlist?>(null) }
 
@@ -237,90 +269,95 @@ fun LibraryScreen(
                     }
                 )
             } else {
+                // Clean header: Search + Three-Dots menu (categories, filters, sort, multi-select, rescan all live inside ⋮)
                 KarlukTopBar(
-                    title = stringResource(R.string.library_title),
+                    title = if (selectedTab == 0) {
+                        stringResource(R.string.library_title)
+                    } else {
+                        tabTitles[selectedTab]
+                    },
                     actions = {
                         IconButton(
                             onClick = onOpenSearch,
-                            modifier = Modifier.minimumInteractiveComponentSize().testTag("library_search_btn")
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("library_search_btn")
                         ) {
-                            Icon(Icons.Rounded.Search, contentDescription = stringResource(R.string.search_title), tint = tokens.textPrimary)
-                        }
-                        Box {
-                            IconButton(
-                                onClick = { sortMenuExpanded = true },
-                                modifier = Modifier.minimumInteractiveComponentSize().testTag("library_sort_btn")
-                            ) {
-                                Icon(Icons.Rounded.Sort, contentDescription = stringResource(R.string.action_sort), tint = tokens.textPrimary)
-                            }
-                            DropdownMenu(
-                                expanded = sortMenuExpanded,
-                                onDismissRequest = { sortMenuExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sort_title)) },
-                                    onClick = { sortOption = SortOption.TITLE; sortMenuExpanded = false }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sort_artist)) },
-                                    onClick = { sortOption = SortOption.ARTIST; sortMenuExpanded = false }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sort_date_added)) },
-                                    onClick = { sortOption = SortOption.DATE_ADDED; sortMenuExpanded = false }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.sort_duration)) },
-                                    onClick = { sortOption = SortOption.DURATION; sortMenuExpanded = false }
-                                )
-                            }
+                            Icon(
+                                Icons.Rounded.Search,
+                                contentDescription = stringResource(R.string.search_title),
+                                tint = tokens.textPrimary
+                            )
                         }
                         IconButton(
-                            onClick = { selectionMode = true },
-                            modifier = Modifier.minimumInteractiveComponentSize().testTag("library_multiselect_btn")
+                            onClick = { showControlsMenu = true },
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("library_more_menu_btn")
                         ) {
-                            Icon(Icons.Rounded.CheckBox, contentDescription = stringResource(R.string.action_select), tint = tokens.textPrimary)
-                        }
-                        IconButton(
-                            onClick = onRescan,
-                            modifier = Modifier.minimumInteractiveComponentSize().testTag("library_rescan_btn")
-                        ) {
-                            if (isScanning) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = tokens.accentPrimary)
-                            } else {
-                                Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.action_rescan), tint = tokens.accentPrimary)
-                            }
+                            Icon(
+                                Icons.Rounded.MoreVert,
+                                contentDescription = stringResource(R.string.library_menu_title),
+                                tint = tokens.accentPrimary
+                            )
                         }
                     }
                 )
-            }
 
-            ScrollableTabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.Transparent,
-                contentColor = tokens.accentPrimary,
-                edgePadding = 12.dp,
-                divider = {}
-            ) {
-                tabTitles.forEachIndexed { idx, title ->
-                    Tab(
-                        selected = selectedTab == idx,
-                        onClick = { selectedTab = idx },
-                        text = {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (selectedTab == idx) tokens.accentPrimary else tokens.textSecondary
-                            )
-                        },
-                        modifier = Modifier.testTag("library_tab_$idx")
+                if (isScanning) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.5.dp),
+                        color = tokens.accentPrimary,
+                        trackColor = tokens.glassBorder.copy(alpha = 0.25f)
                     )
+                }
+
+                // Compact active filter/category badge only when user switched away from defaults
+                if (selectedTab != 0 || formatFilter != "ALL") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (selectedTab != 0) {
+                            FilterChip(
+                                selected = true,
+                                onClick = { selectedTab = 0 },
+                                label = { Text(tabTitles[selectedTab]) },
+                                trailingIcon = {
+                                    Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = tokens.accentPrimary.copy(alpha = 0.2f),
+                                    selectedLabelColor = tokens.accentPrimary
+                                )
+                            )
+                        }
+                        if (formatFilter != "ALL") {
+                            FilterChip(
+                                selected = true,
+                                onClick = { formatFilter = "ALL" },
+                                label = { Text(formatFilter) },
+                                trailingIcon = {
+                                    Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = tokens.accentViolet.copy(alpha = 0.22f),
+                                    selectedLabelColor = tokens.accentViolet
+                                )
+                            )
+                        }
+                    }
                 }
             }
 
             when (selectedTab) {
                 0 -> {
-                    // All Songs
+                    // All Nasheeds with Left Alphabet Fast-Scroller + Right Draggable Scrollbar
                     if (allSongs.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize().padding(bottom = 100.dp),
@@ -335,29 +372,6 @@ fun LibraryScreen(
                             )
                         }
                     } else {
-                        // Format filter chips + Play/Shuffle row
-                        if (availableFormats.size > 2) {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(availableFormats) { fmt ->
-                                    val isAll = fmt == "ALL"
-                                    FilterChip(
-                                        selected = formatFilter == fmt,
-                                        onClick = { formatFilter = fmt },
-                                        label = {
-                                            Text(if (isAll) stringResource(R.string.filter_all_formats) else fmt)
-                                        },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = tokens.accentPrimary.copy(alpha = 0.24f),
-                                            selectedLabelColor = tokens.accentPrimary
-                                        )
-                                    )
-                                }
-                            }
-                        }
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -388,32 +402,24 @@ fun LibraryScreen(
                             }
                         }
 
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 120.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            itemsIndexed(filteredSortedSongs, key = { _, s -> s.id }) { idx, song ->
+                        FastScrollNasheedList(
+                            songs = filteredSortedSongs,
+                            currentSongId = playbackState.currentSong?.id,
+                            isPlaying = playbackState.isPlaying,
+                            selectionMode = selectionMode,
+                            selectedIds = selectedIds,
+                            onSongClick = { idx, song ->
                                 val selected = song.id in selectedIds
-                                SongRowItem(
-                                    song = song,
-                                    isCurrent = playbackState.currentSong?.id == song.id,
-                                    isPlaying = playbackState.isPlaying,
-                                    selectionMode = selectionMode,
-                                    isSelected = selected,
-                                    onClick = {
-                                        if (selectionMode) {
-                                            selectedIds = if (selected) selectedIds - song.id else selectedIds + song.id
-                                        } else {
-                                            onPlaySongs(filteredSortedSongs, idx)
-                                        }
-                                    },
-                                    onToggleFavorite = { onToggleFavorite(song.id) },
-                                    onMoreClick = { optionSong = song },
-                                    onDeleteClick = { deleteTargetSong = song }
-                                )
-                            }
-                        }
+                                if (selectionMode) {
+                                    selectedIds = if (selected) selectedIds - song.id else selectedIds + song.id
+                                } else {
+                                    onPlaySongs(filteredSortedSongs, idx)
+                                }
+                            },
+                            onToggleFavorite = onToggleFavorite,
+                            onMoreClick = { optionSong = it },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
 
@@ -608,7 +614,7 @@ fun LibraryScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         SongArtworkThumb(
-                                            artworkUri = pl.songs.firstOrNull()?.artworkUri,
+                                            artworkUri = pl.songs.firstOrNull()?.let { it.customBackgroundUri ?: it.artworkUri },
                                             size = 48.dp
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -667,8 +673,7 @@ fun LibraryScreen(
                                     isPlaying = playbackState.isPlaying,
                                     onClick = { onPlaySongs(historySongs, idx) },
                                     onToggleFavorite = { onToggleFavorite(song.id) },
-                                    onMoreClick = { optionSong = song },
-                                    onDeleteClick = { deleteTargetSong = song }
+                                    onMoreClick = { optionSong = song }
                                 )
                             }
                         }
@@ -676,6 +681,33 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+
+    if (showControlsMenu) {
+        LibraryControlsDialog(
+            tabTitles = tabTitles,
+            selectedTab = selectedTab,
+            onSelectTab = { idx ->
+                selectedTab = idx
+                showControlsMenu = false
+            },
+            availableFormats = availableFormats,
+            selectedFormat = formatFilter,
+            onSelectFormat = { fmt -> formatFilter = fmt },
+            selectedSort = sortOption,
+            onSelectSort = { opt -> sortOption = opt },
+            isScanning = isScanning,
+            onRescan = {
+                showControlsMenu = false
+                onRescan()
+            },
+            onStartMultiSelect = {
+                showControlsMenu = false
+                selectedTab = 0
+                selectionMode = true
+            },
+            onDismiss = { showControlsMenu = false }
+        )
     }
 
     optionSong?.let { song ->
@@ -687,8 +719,18 @@ fun LibraryScreen(
             onAddToQueue = { onAddToQueue(listOf(song)) },
             onToggleFavorite = { onToggleFavorite(song.id) },
             onAddToPlaylist = { playlistPickerIds = listOf(song.id) },
+            onRename = { renameTargetSong = song },
+            onShare = { ShareUtils.shareSong(context, song) },
             onShowDetails = { detailSong = song },
-            onRemoveFromLibrary = { onRemoveFromLibrary(song.id) }
+            onRemoveFromLibrary = { deleteTargetSong = song }
+        )
+    }
+
+    renameTargetSong?.let { song ->
+        RenameSongDialog(
+            song = song,
+            onDismiss = { renameTargetSong = null },
+            onConfirm = { newTitle -> onRenameSong(song.id, newTitle) }
         )
     }
 
@@ -776,6 +818,468 @@ fun LibraryScreen(
 }
 
 @Composable
+private fun FastScrollNasheedList(
+    songs: List<Song>,
+    currentSongId: Long?,
+    isPlaying: Boolean,
+    selectionMode: Boolean,
+    selectedIds: Set<Long>,
+    onSongClick: (Int, Song) -> Unit,
+    onToggleFavorite: (Long) -> Unit,
+    onMoreClick: (Song) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalKarlukTokens.current
+    val originalDirection = LocalLayoutDirection.current
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+
+    // Map distinct starting characters to their first appearance index in the sorted list
+    val letterIndexPairs = remember(songs) {
+        val seen = linkedMapOf<String, Int>()
+        songs.forEachIndexed { idx, s ->
+            val ch = s.title.trim().firstOrNull()
+            val label = when {
+                ch == null -> "#"
+                ch.isDigit() -> "#"
+                else -> ch.uppercaseChar().toString()
+            }
+            if (!seen.containsKey(label)) {
+                seen[label] = idx
+            }
+        }
+        seen.entries.map { it.key to it.value }
+    }
+
+    // Visual labels shown vertically on the left rail (capped so letters never overlap on smaller screens)
+    val displayLetters = remember(letterIndexPairs) {
+        if (letterIndexPairs.size <= 22) {
+            letterIndexPairs.map { it.first }
+        } else {
+            List(22) { slot ->
+                val mappedIdx = (slot.toFloat() / 21f * (letterIndexPairs.size - 1)).roundToInt()
+                letterIndexPairs[mappedIdx].first
+            }
+        }
+    }
+
+    var activeLetter by remember { mutableStateOf<String?>(null) }
+    var leftRailHeightPx by remember { mutableIntStateOf(1) }
+
+    var rightTrackHeightPx by remember { mutableIntStateOf(1) }
+    var isDraggingScrollbar by remember { mutableStateOf(false) }
+    var dragScrollFraction by remember { mutableFloatStateOf(0f) }
+
+    fun jumpByLeftY(y: Float) {
+        if (letterIndexPairs.isEmpty() || leftRailHeightPx <= 0) return
+        val fraction = (y / leftRailHeightPx.toFloat()).coerceIn(0f, 0.9999f)
+        val idx = (fraction * letterIndexPairs.size).toInt().coerceIn(0, letterIndexPairs.lastIndex)
+        val (letter, songIdx) = letterIndexPairs[idx]
+        if (activeLetter != letter) {
+            activeLetter = letter
+            scope.launch { listState.scrollToItem(songIdx) }
+        }
+    }
+
+    fun scrollByRightY(y: Float) {
+        if (songs.isEmpty() || rightTrackHeightPx <= 0) return
+        val fraction = (y / rightTrackHeightPx.toFloat()).coerceIn(0f, 1f)
+        dragScrollFraction = fraction
+        val visibleCount = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+        val maxFirstIndex = (songs.size - visibleCount).coerceAtLeast(0)
+        val targetIdx = (fraction * maxFirstIndex).roundToInt().coerceIn(0, songs.lastIndex)
+        scope.launch { listState.scrollToItem(targetIdx) }
+    }
+
+    val totalCount = songs.size
+    val visibleCount = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+    val maxFirstIndex = (totalCount - visibleCount).coerceAtLeast(1)
+    val currentScrollFraction = if (isDraggingScrollbar) {
+        dragScrollFraction
+    } else if (totalCount <= visibleCount) {
+        0f
+    } else {
+        (listState.firstVisibleItemIndex.toFloat() / maxFirstIndex.toFloat()).coerceIn(0f, 1f)
+    }
+
+    // Use physical LTR outer Box so Alphabet Scroller is ALWAYS on physical LEFT and Scrollbar ALWAYS on physical RIGHT
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(modifier = modifier.fillMaxSize()) {
+            // Keep LazyColumn items in the user's actual locale direction (RTL for Uyghur/Arabic)
+            CompositionLocalProvider(LocalLayoutDirection provides originalDirection) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("library_nasheed_list"),
+                    contentPadding = PaddingValues(start = 24.dp, end = 34.dp, top = 6.dp, bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(songs, key = { _, s -> s.id }) { idx, song ->
+                        val selected = song.id in selectedIds
+                        SongRowItem(
+                            song = song,
+                            isCurrent = currentSongId == song.id,
+                            isPlaying = isPlaying,
+                            selectionMode = selectionMode,
+                            isSelected = selected,
+                            onClick = { onSongClick(idx, song) },
+                            onToggleFavorite = { onToggleFavorite(song.id) },
+                            onMoreClick = { onMoreClick(song) }
+                        )
+                    }
+                }
+            }
+
+            // Physical LEFT edge: Bidirectional vertical Alphabet Fast-Scroller (top->bottom & bottom->top)
+            if (displayLetters.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .fillMaxHeight()
+                        .padding(start = 2.dp, top = 12.dp, bottom = 112.dp)
+                        .width(28.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (activeLetter != null) tokens.accentPrimary.copy(alpha = 0.14f)
+                            else tokens.glassSurface.copy(alpha = 0.45f)
+                        )
+                        .border(0.6.dp, tokens.glassBorder.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                        .onSizeChanged { leftRailHeightPx = it.height }
+                        .pointerInput(letterIndexPairs) {
+                            detectTapGestures(
+                                onPress = { offset ->
+                                    jumpByLeftY(offset.y)
+                                    tryAwaitRelease()
+                                    activeLetter = null
+                                }
+                            )
+                        }
+                        .pointerInput(letterIndexPairs) {
+                            detectVerticalDragGestures(
+                                onDragStart = { offset -> jumpByLeftY(offset.y) },
+                                onVerticalDrag = { change, _ ->
+                                    change.consume()
+                                    jumpByLeftY(change.position.y)
+                                },
+                                onDragEnd = { activeLetter = null },
+                                onDragCancel = { activeLetter = null }
+                            )
+                        }
+                        .padding(vertical = 4.dp)
+                        .testTag("library_left_alphabet_scroller"),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    displayLetters.forEach { ch ->
+                        val isHighlighted = activeLetter == ch
+                        Text(
+                            text = ch,
+                            fontSize = if (isHighlighted) 12.sp else 10.sp,
+                            fontWeight = if (isHighlighted) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            color = if (isHighlighted) tokens.accentPrimary else tokens.textSecondary,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            // Floating Alphabet Preview Bubble while dragging on the left rail
+            activeLetter?.let { ch ->
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 42.dp)
+                        .size(60.dp),
+                    shape = CircleShape,
+                    color = tokens.accentPrimary,
+                    shadowElevation = 8.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = ch,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF031126)
+                        )
+                    }
+                }
+            }
+
+            // Physical RIGHT edge: Visible vertical scrollbar track + draggable pill thumb
+            if (songs.size > 3) {
+                val thumbHeightDp = 46.dp
+                val thumbHeightPx = with(density) { thumbHeightDp.toPx() }
+                val travelPx = (rightTrackHeightPx - thumbHeightPx).coerceAtLeast(0f)
+                val thumbOffsetY = (currentScrollFraction * travelPx).roundToInt()
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(end = 3.dp, top = 12.dp, bottom = 112.dp)
+                        .width(20.dp)
+                        .onSizeChanged { rightTrackHeightPx = it.height }
+                        .pointerInput(songs.size) {
+                            detectTapGestures(
+                                onPress = { offset ->
+                                    isDraggingScrollbar = true
+                                    scrollByRightY(offset.y)
+                                    tryAwaitRelease()
+                                    isDraggingScrollbar = false
+                                }
+                            )
+                        }
+                        .pointerInput(songs.size) {
+                            detectVerticalDragGestures(
+                                onDragStart = { offset ->
+                                    isDraggingScrollbar = true
+                                    scrollByRightY(offset.y)
+                                },
+                                onVerticalDrag = { change, _ ->
+                                    change.consume()
+                                    scrollByRightY(change.position.y)
+                                },
+                                onDragEnd = { isDraggingScrollbar = false },
+                                onDragCancel = { isDraggingScrollbar = false }
+                            )
+                        }
+                        .testTag("library_right_scrollbar"),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    // Visible vertical track rail
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(4.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(tokens.glassBorder.copy(alpha = 0.42f))
+                    )
+                    // Visible glowing draggable scrollbar thumb
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(0, thumbOffsetY) }
+                            .width(if (isDraggingScrollbar) 10.dp else 7.dp)
+                            .height(thumbHeightDp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isDraggingScrollbar) tokens.accentPrimary
+                                else tokens.accentPrimary.copy(alpha = 0.85f)
+                            )
+                            .border(0.8.dp, Color.White.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LibraryControlsDialog(
+    tabTitles: List<String>,
+    selectedTab: Int,
+    onSelectTab: (Int) -> Unit,
+    availableFormats: List<String>,
+    selectedFormat: String,
+    onSelectFormat: (String) -> Unit,
+    selectedSort: SortOption,
+    onSelectSort: (SortOption) -> Unit,
+    isScanning: Boolean,
+    onRescan: () -> Unit,
+    onStartMultiSelect: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val tokens = LocalKarlukTokens.current
+    val tabIcons = listOf(
+        Icons.Rounded.LibraryMusic,
+        Icons.Rounded.Album,
+        Icons.Rounded.Person,
+        Icons.Rounded.Folder,
+        Icons.AutoMirrored.Rounded.QueueMusic,
+        Icons.Rounded.History
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = if (tokens.isLightTheme) Color.White else Color(0xFF0E2150),
+        title = {
+            Text(
+                text = stringResource(R.string.library_menu_title),
+                color = tokens.textPrimary
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Quick actions: Rescan & Multi-Select
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onRescan,
+                        modifier = Modifier
+                            .weight(1f)
+                            .minimumInteractiveComponentSize()
+                            .testTag("library_rescan_btn"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isScanning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = tokens.accentPrimary
+                            )
+                        } else {
+                            Icon(Icons.Rounded.Refresh, contentDescription = null, tint = tokens.accentPrimary, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.action_rescan),
+                            color = tokens.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onStartMultiSelect,
+                        modifier = Modifier
+                            .weight(1f)
+                            .minimumInteractiveComponentSize()
+                            .testTag("library_multiselect_btn"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.CheckBox, contentDescription = null, tint = tokens.accentPrimary, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.action_select),
+                            color = tokens.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = tokens.glassBorder.copy(alpha = 0.4f))
+
+                // Categories (formerly top ScrollableTabRow)
+                Text(
+                    text = stringResource(R.string.library_category),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.accentPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    tabTitles.forEachIndexed { idx, title ->
+                        val isSelected = selectedTab == idx
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onSelectTab(idx) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = tabIcons.getOrElse(idx) { Icons.Rounded.LibraryMusic },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            label = { Text(title, maxLines = 1) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = tokens.accentPrimary.copy(alpha = 0.24f),
+                                selectedLabelColor = tokens.accentPrimary,
+                                selectedLeadingIconColor = tokens.accentPrimary
+                            ),
+                            modifier = Modifier.testTag("library_tab_$idx")
+                        )
+                    }
+                }
+
+                // Format filters (formerly horizontal FilterChip row)
+                if (availableFormats.size > 2) {
+                    HorizontalDivider(color = tokens.glassBorder.copy(alpha = 0.4f))
+                    Text(
+                        text = stringResource(R.string.action_filter_format),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = tokens.accentPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        availableFormats.forEach { fmt ->
+                            val isAll = fmt == "ALL"
+                            FilterChip(
+                                selected = selectedFormat == fmt,
+                                onClick = { onSelectFormat(fmt) },
+                                label = {
+                                    Text(if (isAll) stringResource(R.string.filter_all_formats) else fmt)
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = tokens.accentPrimary.copy(alpha = 0.24f),
+                                    selectedLabelColor = tokens.accentPrimary
+                                )
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = tokens.glassBorder.copy(alpha = 0.4f))
+
+                // Sort options (formerly top-bar Sort DropdownMenu)
+                Text(
+                    text = stringResource(R.string.action_sort),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.accentPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                val sortItems = listOf(
+                    SortOption.TITLE to R.string.sort_title,
+                    SortOption.ARTIST to R.string.sort_artist,
+                    SortOption.DATE_ADDED to R.string.sort_date_added,
+                    SortOption.DURATION to R.string.sort_duration
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sortItems.forEach { (opt, labelRes) ->
+                        FilterChip(
+                            selected = selectedSort == opt,
+                            onClick = { onSelectSort(opt) },
+                            label = { Text(stringResource(labelRes)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = tokens.accentViolet.copy(alpha = 0.24f),
+                                selectedLabelColor = tokens.accentViolet
+                            )
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.action_done),
+                    color = tokens.accentPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
+}
+
+@Composable
 fun CollectionDetailScreen(
     title: String,
     songs: List<Song>,
@@ -791,15 +1295,18 @@ fun CollectionDetailScreen(
     onAddToQueue: (List<Song>) -> Unit,
     onAddToPlaylist: (Long, List<Long>) -> Unit,
     onCreatePlaylist: (String, List<Long>) -> Unit,
+    onRenameSong: (Long, String) -> Unit = { _, _ -> },
     onRemoveFromPlaylist: ((Long) -> Unit)? = null,
     onExcludeFolder: (() -> Unit)? = null,
     onRemoveFromLibrary: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
     var optionSong by remember { mutableStateOf<Song?>(null) }
     var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
+    var renameTargetSong by remember { mutableStateOf<Song?>(null) }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(modifier = Modifier.widthIn(max = 640.dp).fillMaxSize()) {
@@ -853,8 +1360,7 @@ fun CollectionDetailScreen(
                         isPlaying = playbackState.isPlaying,
                         onClick = { onPlaySongs(songs, idx) },
                         onToggleFavorite = { onToggleFavorite(song.id) },
-                        onMoreClick = { optionSong = song },
-                        onDeleteClick = { deleteTargetSong = song }
+                        onMoreClick = { optionSong = song }
                     )
                 }
             }
@@ -870,14 +1376,18 @@ fun CollectionDetailScreen(
             onAddToQueue = { onAddToQueue(listOf(song)) },
             onToggleFavorite = { onToggleFavorite(song.id) },
             onAddToPlaylist = { playlistPickerSong = song },
+            onRename = { renameTargetSong = song },
+            onShare = { ShareUtils.shareSong(context, song) },
             onShowDetails = { detailSong = song },
-            onRemoveFromLibrary = {
-                if (playlistId != null && onRemoveFromPlaylist != null) {
-                    onRemoveFromPlaylist(song.id)
-                } else {
-                    onRemoveFromLibrary(song.id)
-                }
-            }
+            onRemoveFromLibrary = { deleteTargetSong = song }
+        )
+    }
+
+    renameTargetSong?.let { song ->
+        RenameSongDialog(
+            song = song,
+            onDismiss = { renameTargetSong = null },
+            onConfirm = { newTitle -> onRenameSong(song.id, newTitle) }
         )
     }
 

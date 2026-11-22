@@ -60,6 +60,13 @@
     <string name="action_retry">Retry</string>
     <string name="action_save">Save</string>
     <string name="action_clear">Clear</string>
+    <string name="action_play">Play</string>
+    <string name="action_share">Share</string>
+    <string name="rename_nasheed_title">Rename Nasheed</string>
+    <string name="rename_nasheed_hint">New Nasheed title</string>
+    <string name="library_menu_title">Views &amp; Filters</string>
+    <string name="library_category">Category</string>
+    <string name="share_failed">Unable to share this Nasheed</string>
     <string name="selected_count">%1$d selected</string>
 
     <!-- Sort & Filter -->
@@ -88,6 +95,9 @@
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">Now Playing</string>
+    <string name="now_playing_custom_bg">Nasheed Background</string>
+    <string name="now_playing_custom_bg_change">Change Background</string>
+    <string name="now_playing_custom_bg_reset">Remove Nasheed Background</string>
     <string name="playback_speed">Speed</string>
     <string name="lyrics_title">Text &amp; Script</string>
     <string name="lyrics_import_lrc">Import .LRC</string>
@@ -182,6 +192,11 @@
     <string name="theme_glass_opacity">Glass Transparency</string>
     <string name="theme_reduced_motion">Reduced Motion</string>
     <string name="theme_low_power">Low-Power Mode (Simpler Effects)</string>
+    <string name="theme_custom_bg_title">Background Image</string>
+    <string name="theme_custom_bg_pick">Choose from Gallery</string>
+    <string name="theme_custom_bg_active">Using custom gallery wallpaper</string>
+    <string name="theme_custom_bg_default">Default theme background</string>
+    <string name="theme_custom_bg_reset">Reset Background</string>
 
     <!-- Storage & About -->
     <string name="storage_title">Storage Information</string>

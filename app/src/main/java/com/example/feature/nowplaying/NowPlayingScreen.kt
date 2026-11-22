@@ -1,5 +1,10 @@
 package com.example.feature.nowplaying
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.AddPhotoAlternate
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Favorite
@@ -25,11 +34,13 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -37,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -50,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -60,6 +73,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.core.common.ShareUtils
 import com.example.core.designsystem.FormatBadge
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.GlowingPlayButton
@@ -73,6 +87,8 @@ import com.example.core.designsystem.localizedArtist
 import com.example.domain.model.PlaybackState
 import com.example.domain.model.PlaybackStatus
 import com.example.domain.model.RepeatModeOption
+import com.example.domain.model.Song
+import com.example.feature.common.RenameSongDialog
 
 @Composable
 fun NowPlayingScreen(
@@ -91,11 +107,28 @@ fun NowPlayingScreen(
     onOpenLyrics: () -> Unit,
     onOpenQueue: () -> Unit,
     onOpenEqualizer: () -> Unit,
-    onOpenSleepTimer: () -> Unit
+    onOpenSleepTimer: () -> Unit,
+    onPickSongBackground: (Long, Uri) -> Unit = { _, _ -> },
+    onClearSongBackground: (Long) -> Unit = {},
+    onRenameSong: (Long, String) -> Unit = { _, _ -> }
 ) {
+    val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
     val song = playbackState.currentSong
     var speedMenuOpen by remember { mutableStateOf(false) }
+    var bgMenuOpen by remember { mutableStateOf(false) }
+    var pendingSongIdForBg by remember { mutableStateOf<Long?>(null) }
+    var renameTarget by remember { mutableStateOf<Song?>(null) }
+
+    val songBgPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        val targetId = pendingSongIdForBg ?: song?.id
+        pendingSongIdForBg = null
+        if (uri != null && targetId != null) {
+            onPickSongBackground(targetId, uri)
+        }
+    }
 
     KarlukBackground {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -132,6 +165,20 @@ fun NowPlayingScreen(
                                 }
                             }
                         }
+                        if (song != null) {
+                            IconButton(
+                                onClick = { ShareUtils.shareSong(context, song) },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("now_playing_share_btn")
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Share,
+                                    contentDescription = stringResource(R.string.action_share),
+                                    tint = tokens.textPrimary
+                                )
+                            }
+                        }
                         IconButton(
                             onClick = onOpenQueue,
                             modifier = Modifier.minimumInteractiveComponentSize().testTag("now_playing_queue_btn")
@@ -151,11 +198,102 @@ fun NowPlayingScreen(
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    SpinningVinylArtwork(
-                        artworkUri = song?.artworkUri,
-                        isPlaying = playbackState.isPlaying,
-                        size = 228.dp
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        SpinningVinylArtwork(
+                            artworkUri = song?.artworkUri,
+                            isPlaying = playbackState.isPlaying,
+                            size = 228.dp,
+                            modifier = Modifier.align(Alignment.Center),
+                            customBackgroundUri = song?.customBackgroundUri
+                        )
+
+                        if (song != null) {
+                            val hasSongBg = !song.customBackgroundUri.isNullOrBlank()
+                            Box(
+                                modifier = Modifier.align(Alignment.TopStart)
+                            ) {
+                                Surface(
+                                    onClick = {
+                                        if (hasSongBg) {
+                                            bgMenuOpen = true
+                                        } else {
+                                            pendingSongIdForBg = song.id
+                                            songBgPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        }
+                                    },
+                                    shape = CircleShape,
+                                    color = if (hasSongBg) {
+                                        tokens.accentPrimary.copy(alpha = 0.22f)
+                                    } else {
+                                        tokens.glassSurfaceElevated
+                                    },
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (hasSongBg) tokens.accentPrimary else tokens.glassBorder
+                                    ),
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .size(48.dp)
+                                        .testTag("now_playing_custom_bg_btn")
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (hasSongBg) Icons.Rounded.Wallpaper else Icons.Rounded.AddPhotoAlternate,
+                                            contentDescription = stringResource(R.string.now_playing_custom_bg),
+                                            tint = if (hasSongBg) tokens.accentPrimary else tokens.textPrimary,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = bgMenuOpen,
+                                    onDismissRequest = { bgMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.now_playing_custom_bg_change)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Rounded.AddPhotoAlternate,
+                                                contentDescription = null,
+                                                tint = tokens.accentPrimary
+                                            )
+                                        },
+                                        onClick = {
+                                            bgMenuOpen = false
+                                            pendingSongIdForBg = song.id
+                                            songBgPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                stringResource(R.string.now_playing_custom_bg_reset),
+                                                color = Color(0xFFFF6E8A)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF6E8A)
+                                            )
+                                        },
+                                        onClick = {
+                                            bgMenuOpen = false
+                                            onClearSongBackground(song.id)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(14.dp))
 
@@ -200,6 +338,19 @@ fun NowPlayingScreen(
                         }
 
                         if (song != null) {
+                            IconButton(
+                                onClick = { renameTarget = song },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("now_playing_rename_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Edit,
+                                    contentDescription = stringResource(R.string.rename_nasheed_title),
+                                    tint = tokens.accentPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                             IconButton(
                                 onClick = { onToggleFavorite(song.id) },
                                 modifier = Modifier
@@ -337,6 +488,14 @@ fun NowPlayingScreen(
                 }
             }
         }
+    }
+
+    renameTarget?.let { target ->
+        RenameSongDialog(
+            song = target,
+            onDismiss = { renameTarget = null },
+            onConfirm = { newTitle -> onRenameSong(target.id, newTitle) }
+        )
     }
 }
 

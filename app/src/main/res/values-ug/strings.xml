@@ -60,6 +60,13 @@
     <string name="action_retry">قايتا سىناش</string>
     <string name="action_save">ساقلاش</string>
     <string name="action_clear">تازىلاش</string>
+    <string name="action_play">قويۇش</string>
+    <string name="action_share">ھەمبەھىرلەش</string>
+    <string name="rename_nasheed_title">نەشىد نامىنى ئۆزگەرتىش</string>
+    <string name="rename_nasheed_hint">يېڭى نەشىد نامى</string>
+    <string name="library_menu_title">كۆرسىتىش ۋە سۈزۈش</string>
+    <string name="library_category">بۆلۈم</string>
+    <string name="share_failed">ھەمبەھىرلەشكە بولمىدى</string>
     <string name="selected_count">%1$d تاللاندى</string>
 
     <!-- Sort & Filter -->
@@ -88,6 +95,9 @@
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">قويۇلۇۋاتقان نەشىد</string>
+    <string name="now_playing_custom_bg">نەشىد تەگلىكى</string>
+    <string name="now_playing_custom_bg_change">باشقا تەگلىك تاللاش</string>
+    <string name="now_playing_custom_bg_reset">نەشىد تەگلىكىنى ئېلىۋېتىش</string>
     <string name="playback_speed">سۈرئەت</string>
     <string name="lyrics_title">تېكىست</string>
     <string name="lyrics_import_lrc">.LRC كىرگۈزۈش</string>
@@ -182,6 +192,11 @@
     <string name="theme_glass_opacity">ئەينەك سۈزۈكلۈكى</string>
     <string name="theme_reduced_motion">ھەرىكەتنى ئازايتىش</string>
     <string name="theme_low_power">تۆۋەن سەرپىيات ھالىتى</string>
+    <string name="theme_custom_bg_title">تەگلىك رەسىمى</string>
+    <string name="theme_custom_bg_pick">رەسىم ئامبىرىدىن تاللاش</string>
+    <string name="theme_custom_bg_active">رەسىم ئامبىرىدىن خاس تەگلىك ئىشلىتىلىۋاتىدۇ</string>
+    <string name="theme_custom_bg_default">سۈكۈتتىكى كۆرۈنۈش تەگلىكى</string>
+    <string name="theme_custom_bg_reset">تەگلىكنى ئەسلىگە قايتۇرۇش</string>
 
     <!-- Storage & About -->
     <string name="storage_title">ساقلاش ئۇچۇرى</string>

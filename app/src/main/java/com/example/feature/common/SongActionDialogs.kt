@@ -11,17 +11,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,6 +69,8 @@ fun SongOptionsDialog(
     onAddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onRename: () -> Unit = {},
+    onShare: () -> Unit = {},
     onShowDetails: () -> Unit,
     onRemoveFromLibrary: () -> Unit
 ) {
@@ -76,7 +82,10 @@ fun SongOptionsDialog(
         textContentColor = tokens.textSecondary,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SongArtworkThumb(artworkUri = song.artworkUri, size = 44.dp)
+                SongArtworkThumb(
+                    artworkUri = song.customBackgroundUri?.takeIf { it.isNotBlank() } ?: song.artworkUri,
+                    size = 44.dp
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -103,8 +112,15 @@ fun SongOptionsDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                OptionActionRow(Icons.Rounded.PlayArrow, stringResource(R.string.action_play_all)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                OptionActionRow(
+                    icon = Icons.Rounded.PlayArrow,
+                    label = stringResource(R.string.action_play),
+                    modifier = Modifier.testTag("song_option_play")
+                ) {
                     onPlayNow(); onDismiss()
                 }
                 OptionActionRow(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.action_play_next)) {
@@ -122,11 +138,30 @@ fun SongOptionsDialog(
                 OptionActionRow(Icons.AutoMirrored.Rounded.PlaylistAdd, stringResource(R.string.action_add_to_playlist)) {
                     onDismiss(); onAddToPlaylist()
                 }
+                OptionActionRow(
+                    icon = Icons.Rounded.Edit,
+                    label = stringResource(R.string.rename_nasheed_title),
+                    modifier = Modifier.testTag("song_option_rename")
+                ) {
+                    onDismiss(); onRename()
+                }
+                OptionActionRow(
+                    icon = Icons.Rounded.Share,
+                    label = stringResource(R.string.action_share),
+                    modifier = Modifier.testTag("song_option_share")
+                ) {
+                    onDismiss(); onShare()
+                }
                 OptionActionRow(Icons.Rounded.Info, stringResource(R.string.files_details)) {
                     onDismiss(); onShowDetails()
                 }
-                OptionActionRow(Icons.Rounded.DeleteOutline, stringResource(R.string.action_remove)) {
-                    onRemoveFromLibrary(); onDismiss()
+                OptionActionRow(
+                    icon = Icons.Rounded.DeleteOutline,
+                    label = stringResource(R.string.action_delete),
+                    tint = Color(0xFFFF6E8A),
+                    modifier = Modifier.testTag("song_option_delete")
+                ) {
+                    onDismiss(); onRemoveFromLibrary()
                 }
             }
         },
@@ -139,23 +174,88 @@ fun SongOptionsDialog(
 }
 
 @Composable
+fun RenameSongDialog(
+    song: Song,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val tokens = LocalKarlukTokens.current
+    var newTitle by remember(song.id) { mutableStateOf(song.title) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = if (tokens.isLightTheme) Color.White else Color(0xFF0E2150),
+        title = {
+            Text(
+                text = stringResource(R.string.rename_nasheed_title),
+                color = tokens.textPrimary
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = newTitle,
+                onValueChange = { newTitle = it },
+                placeholder = { Text(stringResource(R.string.rename_nasheed_hint)) },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("rename_nasheed_input")
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val trimmed = newTitle.trim()
+                    if (trimmed.isNotEmpty()) {
+                        onConfirm(trimmed)
+                    }
+                    onDismiss()
+                },
+                enabled = newTitle.isNotBlank(),
+                modifier = Modifier.testTag("rename_nasheed_save")
+            ) {
+                Text(
+                    text = stringResource(R.string.action_save),
+                    color = tokens.accentPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.action_cancel),
+                    color = tokens.textSecondary
+                )
+            }
+        }
+    )
+}
+
+@Composable
 private fun OptionActionRow(
     icon: ImageVector,
     label: String,
+    tint: Color = LocalKarlukTokens.current.accentPrimary,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .minimumInteractiveComponentSize()
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = tokens.accentPrimary)
+        Icon(imageVector = icon, contentDescription = null, tint = tint)
         Spacer(modifier = Modifier.width(12.dp))
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tokens.textPrimary)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (tint == Color(0xFFFF6E8A)) tint else tokens.textPrimary
+        )
     }
 }
 

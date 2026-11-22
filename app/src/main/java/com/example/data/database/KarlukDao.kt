@@ -129,4 +129,30 @@ interface KarlukDao {
 
     @Query("DELETE FROM excluded_folders WHERE folderPath = :folderPath")
     suspend fun deleteExcludedFolder(folderPath: String)
+
+    // Per-Nasheed Custom Backgrounds
+    @Query("SELECT * FROM song_backgrounds")
+    fun observeSongBackgrounds(): Flow<List<SongBackgroundEntity>>
+
+    @Query("SELECT * FROM song_backgrounds WHERE songId = :songId LIMIT 1")
+    suspend fun getSongBackgroundOnce(songId: Long): SongBackgroundEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSongBackground(bg: SongBackgroundEntity)
+
+    @Query("DELETE FROM song_backgrounds WHERE songId = :songId")
+    suspend fun deleteSongBackground(songId: Long)
+
+    // Per-Nasheed Custom Titles (Rename)
+    @Query("SELECT * FROM song_custom_titles")
+    fun observeSongCustomTitles(): Flow<List<SongCustomTitleEntity>>
+
+    @Query("SELECT * FROM song_custom_titles WHERE songId = :songId LIMIT 1")
+    suspend fun getSongCustomTitleOnce(songId: Long): SongCustomTitleEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSongCustomTitle(titleEntry: SongCustomTitleEntity)
+
+    @Query("DELETE FROM song_custom_titles WHERE songId = :songId")
+    suspend fun deleteSongCustomTitle(songId: Long)
 }

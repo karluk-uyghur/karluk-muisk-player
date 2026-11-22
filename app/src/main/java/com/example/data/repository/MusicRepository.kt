@@ -13,6 +13,8 @@ import com.example.data.database.PlaylistEntity
 import com.example.data.database.PlaylistSongCrossRef
 import com.example.data.database.SafFolderEntity
 import com.example.data.database.SearchHistoryEntity
+import com.example.data.database.SongBackgroundEntity
+import com.example.data.database.SongCustomTitleEntity
 import com.example.data.database.SongEntity
 import com.example.data.media.MediaScanner
 import com.example.domain.model.Album
@@ -23,9 +25,13 @@ import com.example.domain.model.LyricsData
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.domain.model.StorageStats
+import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class MusicRepository(
     private val context: Context,
@@ -33,15 +39,24 @@ class MusicRepository(
     private val mediaScanner: MediaScanner
 ) {
 
+    private val songOverridesFlow = combine(
+        dao.observeSongBackgrounds(),
+        dao.observeSongCustomTitles()
+    ) { backgrounds, titles ->
+        backgrounds.associateBy { it.songId } to titles.associateBy { it.songId }
+    }
+
     val allSongsFlow: Flow<List<Song>> = combine(
         dao.observeAllSongs(),
         dao.observeFavorites(),
         dao.observeHistory(),
-        dao.observeExcludedFolders()
-    ) { songs, favorites, history, excluded ->
+        dao.observeExcludedFolders(),
+        songOverridesFlow
+    ) { songs, favorites, history, excluded, overrides ->
         val favIds = favorites.map { it.songId }.toHashSet()
         val historyMap = history.associateBy { it.songId }
         val excludedPaths = excluded.map { it.folderPath }.toHashSet()
+        val (bgMap, titleMap) = overrides
 
         songs
             .filter { it.folderPath !in excludedPaths }
@@ -50,7 +65,9 @@ class MusicRepository(
                 entity.toDomain(
                     isFavorite = entity.id in favIds,
                     playCount = hist?.playCount ?: 0,
-                    lastPlayedAt = hist?.lastPlayedAt ?: 0L
+                    lastPlayedAt = hist?.lastPlayedAt ?: 0L,
+                    customBackgroundUri = bgMap[entity.id]?.backgroundUri,
+                    customTitle = titleMap[entity.id]?.customTitle
                 )
             }
     }
@@ -114,10 +131,12 @@ class MusicRepository(
     val playlistsFlow: Flow<List<Playlist>> = combine(
         dao.observePlaylistsWithSongs(),
         dao.observeFavorites(),
-        dao.observeHistory()
-    ) { list, favs, history ->
+        dao.observeHistory(),
+        songOverridesFlow
+    ) { list, favs, history, overrides ->
         val favIds = favs.map { it.songId }.toHashSet()
         val historyMap = history.associateBy { it.songId }
+        val (bgMap, titleMap) = overrides
         list.map { item ->
             Playlist(
                 id = item.playlist.id,
@@ -128,7 +147,9 @@ class MusicRepository(
                     s.toDomain(
                         isFavorite = s.id in favIds,
                         playCount = hist?.playCount ?: 0,
-                        lastPlayedAt = hist?.lastPlayedAt ?: 0L
+                        lastPlayedAt = hist?.lastPlayedAt ?: 0L,
+                        customBackgroundUri = bgMap[s.id]?.backgroundUri,
+                        customTitle = titleMap[s.id]?.customTitle
                     )
                 }
             )
@@ -329,11 +350,64 @@ class MusicRepository(
     }
 
     suspend fun removeSongFromLibrary(songId: Long) {
+        clearSongBackground(songId)
+        dao.deleteSongCustomTitle(songId)
         dao.deleteSongById(songId)
     }
 
+    suspend fun renameSong(songId: Long, newTitle: String) {
+        val clean = newTitle.trim()
+        if (clean.isNotBlank()) {
+            dao.upsertSongCustomTitle(SongCustomTitleEntity(songId = songId, customTitle = clean))
+        }
+    }
+
+    suspend fun saveSongBackgroundFromUri(songId: Long, sourceUri: Uri): String? = withContext(Dispatchers.IO) {
+        val bgDir = File(context.filesDir, "song_backgrounds").apply { if (!exists()) mkdirs() }
+        val prefix = "song_${songId}_"
+        val destFile = File(bgDir, "${prefix}${System.currentTimeMillis()}.jpg")
+        val copied = try {
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
+                }
+            } != null
+        } catch (_: Exception) {
+            false
+        }
+        if (!copied || !destFile.exists() || destFile.length() <= 0L) {
+            destFile.delete()
+            return@withContext null
+        }
+        bgDir.listFiles()?.forEach { file ->
+            if (file.name.startsWith(prefix) && file.absolutePath != destFile.absolutePath) {
+                file.delete()
+            }
+        }
+        val savedUri = Uri.fromFile(destFile).toString()
+        dao.upsertSongBackground(SongBackgroundEntity(songId = songId, backgroundUri = savedUri))
+        savedUri
+    }
+
+    suspend fun clearSongBackground(songId: Long) = withContext(Dispatchers.IO) {
+        val bgDir = File(context.filesDir, "song_backgrounds")
+        val prefix = "song_${songId}_"
+        if (bgDir.exists()) {
+            bgDir.listFiles()?.forEach { file ->
+                if (file.name.startsWith(prefix)) {
+                    file.delete()
+                }
+            }
+        }
+        dao.deleteSongBackground(songId)
+    }
+
     suspend fun getSongById(songId: Long): Song? {
-        return dao.getSongById(songId)?.toDomain(isFavorite = dao.isFavorite(songId))
+        return dao.getSongById(songId)?.toDomain(
+            isFavorite = dao.isFavorite(songId),
+            customBackgroundUri = dao.getSongBackgroundOnce(songId)?.backgroundUri,
+            customTitle = dao.getSongCustomTitleOnce(songId)?.customTitle
+        )
     }
 
     fun clearArtworkCache() {
@@ -343,10 +417,12 @@ class MusicRepository(
     private fun SongEntity.toDomain(
         isFavorite: Boolean = false,
         playCount: Int = 0,
-        lastPlayedAt: Long = 0L
+        lastPlayedAt: Long = 0L,
+        customBackgroundUri: String? = null,
+        customTitle: String? = null
     ): Song = Song(
         id = id,
-        title = title,
+        title = customTitle?.takeIf { it.isNotBlank() } ?: title,
         artist = artist,
         album = album,
         duration = duration,
@@ -363,6 +439,7 @@ class MusicRepository(
         isSafTrack = isSafTrack,
         isFavorite = isFavorite,
         playCount = playCount,
-        lastPlayedAt = lastPlayedAt
+        lastPlayedAt = lastPlayedAt,
+        customBackgroundUri = customBackgroundUri
     )
 }

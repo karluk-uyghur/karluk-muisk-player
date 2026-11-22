@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.core.common.ShareUtils
 import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.FormatBadge
@@ -68,6 +70,7 @@ import com.example.domain.model.PlaybackState
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.feature.common.AddToPlaylistDialog
+import com.example.feature.common.RenameSongDialog
 import com.example.feature.common.SongDetailsDialog
 import com.example.feature.common.SongOptionsDialog
 
@@ -236,12 +239,15 @@ fun HistoryScreen(
     onAddToQueue: (List<Song>) -> Unit,
     onAddToPlaylist: (Long, List<Long>) -> Unit,
     onCreatePlaylist: (String, List<Long>) -> Unit,
+    onRenameSong: (Long, String) -> Unit = { _, _ -> },
     onRemoveFromLibrary: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     var optionSong by remember { mutableStateOf<Song?>(null) }
     var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
+    var renameTargetSong by remember { mutableStateOf<Song?>(null) }
 
     KarlukBackground {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -286,8 +292,7 @@ fun HistoryScreen(
                                 isPlaying = playbackState.isPlaying,
                                 onClick = { onPlaySongs(historySongs, idx) },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
-                                onMoreClick = { optionSong = song },
-                                onDeleteClick = { deleteTargetSong = song }
+                                onMoreClick = { optionSong = song }
                             )
                         }
                     }
@@ -305,8 +310,18 @@ fun HistoryScreen(
             onAddToQueue = { onAddToQueue(listOf(song)) },
             onToggleFavorite = { onToggleFavorite(song.id) },
             onAddToPlaylist = { playlistPickerSong = song },
+            onRename = { renameTargetSong = song },
+            onShare = { ShareUtils.shareSong(context, song) },
             onShowDetails = { detailSong = song },
-            onRemoveFromLibrary = { onRemoveFromLibrary(song.id) }
+            onRemoveFromLibrary = { deleteTargetSong = song }
+        )
+    }
+
+    renameTargetSong?.let { song ->
+        RenameSongDialog(
+            song = song,
+            onDismiss = { renameTargetSong = null },
+            onConfirm = { newTitle -> onRenameSong(song.id, newTitle) }
         )
     }
 

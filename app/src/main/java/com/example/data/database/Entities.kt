@@ -110,3 +110,17 @@ data class ExcludedFolderEntity(
     val folderName: String,
     val excludedAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "song_backgrounds")
+data class SongBackgroundEntity(
+    @PrimaryKey val songId: Long,
+    val backgroundUri: String,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "song_custom_titles")
+data class SongCustomTitleEntity(
+    @PrimaryKey val songId: Long,
+    val customTitle: String,
+    val updatedAt: Long = System.currentTimeMillis()
+)

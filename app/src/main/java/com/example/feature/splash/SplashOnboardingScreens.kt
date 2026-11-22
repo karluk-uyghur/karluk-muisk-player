@@ -1,8 +1,11 @@
 package com.example.feature.splash
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import android.graphics.Matrix
+import android.net.Uri
+import android.view.TextureView
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +27,6 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -32,20 +34,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.media3.exoplayer.ExoPlayer
 import com.example.R
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.KarlukBackground
@@ -57,18 +71,17 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     onboardingCompleted: Boolean,
+    skipIntroOnce: Boolean = false,
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
-    val tokens = LocalKarlukTokens.current
+    val context = LocalContext.current
     val latestCompleted by rememberUpdatedState(onboardingCompleted)
-    val scale = remember { Animatable(0.82f) }
-    val alpha = remember { Animatable(0f) }
+    var didNavigate by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        alpha.animateTo(1f, animationSpec = tween(450))
-        scale.animateTo(1f, animationSpec = tween(450))
-        delay(850L)
+    fun navigateNext() {
+        if (didNavigate) return
+        didNavigate = true
         if (latestCompleted) {
             onNavigateToHome()
         } else {
@@ -76,38 +89,145 @@ fun SplashScreen(
         }
     }
 
-    KarlukBackground {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .scale(scale.value)
-                    .alpha(alpha.value)
-                    .padding(24.dp)
-            ) {
-                KarlukLogoImage(size = 160.dp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = tokens.textPrimary
+    if (skipIntroOnce) {
+        LaunchedEffect(Unit) {
+            navigateNext()
+        }
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+        return
+    }
+
+    val exoPlayer = remember(context) {
+        ExoPlayer.Builder(context).build().apply {
+            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.karluk_intro}")
+            setMediaItem(MediaItem.fromUri(videoUri))
+            repeatMode = Player.REPEAT_MODE_OFF
+            playWhenReady = true
+            prepare()
+        }
+    }
+
+    var latestVideoSize by remember { mutableStateOf(VideoSize.UNKNOWN) }
+    var visibleVideoFractionH by remember { mutableFloatStateOf(1f) }
+
+    fun applyPhoneAdaptedScale(textureView: TextureView, videoSize: VideoSize) {
+        val viewWidth = textureView.width.toFloat()
+        val viewHeight = textureView.height.toFloat()
+        val videoWidth = videoSize.width.toFloat()
+        val videoHeight = videoSize.height.toFloat()
+        if (viewWidth <= 0f || viewHeight <= 0f || videoWidth <= 0f || videoHeight <= 0f) return
+
+        // On portrait phone screens, adapt the 16:9 intro animation cleanly to fill the central phone viewport
+        // without cropping the logo/title, while seamlessly feathering edges into pure black.
+        val isPortraitScreen = viewHeight > viewWidth
+        val fitWidthScale = viewWidth / videoWidth
+        val fitHeightScale = viewHeight / videoHeight
+        val scale = if (isPortraitScreen && videoWidth > videoHeight) {
+            minOf(fitHeightScale, fitWidthScale * 1.48f)
+        } else {
+            maxOf(fitWidthScale, fitHeightScale)
+        }
+
+        val scaledWidth = videoWidth * scale
+        val scaledHeight = videoHeight * scale
+        visibleVideoFractionH = (scaledHeight / viewHeight).coerceIn(0f, 1f)
+
+        val matrix = Matrix()
+        matrix.setScale(scaledWidth / viewWidth, scaledHeight / viewHeight, viewWidth / 2f, viewHeight / 2f)
+        textureView.setTransform(matrix)
+    }
+
+    val textureView = remember(context) {
+        TextureView(context)
+    }
+
+    DisposableEffect(exoPlayer, textureView) {
+        exoPlayer.setVideoTextureView(textureView)
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    navigateNext()
+                }
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                latestVideoSize = videoSize
+                applyPhoneAdaptedScale(textureView, videoSize)
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                navigateNext()
+            }
+        }
+        exoPlayer.addListener(listener)
+
+        val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            applyPhoneAdaptedScale(textureView, latestVideoSize)
+        }
+        textureView.addOnLayoutChangeListener(layoutListener)
+
+        onDispose {
+            textureView.removeOnLayoutChangeListener(layoutListener)
+            exoPlayer.removeListener(listener)
+            exoPlayer.clearVideoTextureView(textureView)
+            exoPlayer.release()
+        }
+    }
+
+    // Safety fallback so headless/codec-less environments never stall on Splash
+    LaunchedEffect(Unit) {
+        delay(12_000L)
+        navigateNext()
+    }
+
+    // Pure #000000 full-bleed phone container with no player chrome or Skip text
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        AndroidView(
+            factory = { textureView },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Seamless vertical black edge blend so the video integrates natively into the screen without a visible box
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val videoH = h * visibleVideoFractionH
+            if (videoH > 0f && videoH < h) {
+                val topEdge = (h - videoH) / 2f
+                val bottomEdge = topEdge + videoH
+                val feather = (videoH * 0.14f).coerceAtLeast(24f)
+
+                drawRect(
+                    color = Color.Black,
+                    topLeft = Offset.Zero,
+                    size = Size(w, topEdge)
                 )
-                Text(
-                    text = stringResource(R.string.app_subtitle),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = tokens.accentPrimary
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Black, Color.Transparent),
+                        startY = topEdge,
+                        endY = topEdge + feather
+                    ),
+                    topLeft = Offset(0f, topEdge),
+                    size = Size(w, feather)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                CircularProgressIndicator(
-                    modifier = Modifier.size(26.dp),
-                    strokeWidth = 2.5.dp,
-                    color = tokens.accentPrimary
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black),
+                        startY = bottomEdge - feather,
+                        endY = bottomEdge
+                    ),
+                    topLeft = Offset(0f, bottomEdge - feather),
+                    size = Size(w, feather)
+                )
+                drawRect(
+                    color = Color.Black,
+                    topLeft = Offset(0f, bottomEdge),
+                    size = Size(w, h - bottomEdge)
                 )
             }
         }

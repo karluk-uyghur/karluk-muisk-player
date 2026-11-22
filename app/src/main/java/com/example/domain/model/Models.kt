@@ -22,7 +22,8 @@ data class Song(
     val isSafTrack: Boolean = false,
     val isFavorite: Boolean = false,
     val playCount: Int = 0,
-    val lastPlayedAt: Long = 0L
+    val lastPlayedAt: Long = 0L,
+    val customBackgroundUri: String? = null
 )
 
 data class Album(
@@ -184,7 +185,8 @@ data class UserSettings(
     val gaplessPlayback: Boolean = true,
     val autoScanOnStartup: Boolean = true,
     val lastSongId: Long = -1L,
-    val lastPositionMs: Long = 0L
+    val lastPositionMs: Long = 0L,
+    val customBackgroundUri: String? = null
 )
 
 enum class SortOption {

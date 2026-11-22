@@ -60,6 +60,13 @@
     <string name="action_retry">إعادة المحاولة</string>
     <string name="action_save">حفظ</string>
     <string name="action_clear">مسح</string>
+    <string name="action_play">تشغيل</string>
+    <string name="action_share">مشاركة</string>
+    <string name="rename_nasheed_title">إعادة تسمية الأنشودة</string>
+    <string name="rename_nasheed_hint">اسم الأنشودة الجديد</string>
+    <string name="library_menu_title">العرض والتصفية</string>
+    <string name="library_category">القسم</string>
+    <string name="share_failed">تعذرت مشاركة الأنشودة</string>
     <string name="selected_count">تم تحديد %1$d</string>
 
     <!-- Sort & Filter -->
@@ -88,6 +95,9 @@
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">قيد التشغيل</string>
+    <string name="now_playing_custom_bg">خلفية الأنشودة</string>
+    <string name="now_playing_custom_bg_change">تغيير الخلفية</string>
+    <string name="now_playing_custom_bg_reset">إزالة خلفية الأنشودة</string>
     <string name="playback_speed">السرعة</string>
     <string name="lyrics_title">النص</string>
     <string name="lyrics_import_lrc">استيراد .LRC</string>
@@ -182,6 +192,11 @@
     <string name="theme_glass_opacity">شفافية الزجاج</string>
     <string name="theme_reduced_motion">تقليل الحركة</string>
     <string name="theme_low_power">وضع توفير الطاقة</string>
+    <string name="theme_custom_bg_title">صورة الخلفية</string>
+    <string name="theme_custom_bg_pick">اختيار من المعرض</string>
+    <string name="theme_custom_bg_active">يتم استخدام خلفية مخصصة من المعرض</string>
+    <string name="theme_custom_bg_default">خلفية المظهر الافتراضية</string>
+    <string name="theme_custom_bg_reset">إعادة تعيين الخلفية</string>
 
     <!-- Storage & About -->
     <string name="storage_title">معلومات التخزين</string>

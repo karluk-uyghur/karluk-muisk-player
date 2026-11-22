@@ -31,7 +31,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.MoreVert
@@ -55,6 +54,9 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -159,9 +161,12 @@ fun DeleteConfirmDialog(
 @Composable
 fun KarlukBackground(
     modifier: Modifier = Modifier,
+    overrideBackgroundUri: String? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
+    val activeBgUri = overrideBackgroundUri?.takeIf { it.isNotBlank() } ?: tokens.customBackgroundUri
+    val hasCustomBg = !activeBgUri.isNullOrBlank()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -171,7 +176,7 @@ fun KarlukBackground(
                         colors = listOf(tokens.bgTop, tokens.bgMiddle, tokens.bgBottom)
                     )
                 )
-                if (!tokens.lowPowerMode) {
+                if (!tokens.lowPowerMode && !hasCustomBg) {
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -197,9 +202,39 @@ fun KarlukBackground(
                         radius = size.width * 0.7f
                     )
                 }
-            },
-        content = content
-    )
+            }
+    ) {
+        if (hasCustomBg) {
+            AsyncImage(
+                model = activeBgUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = if (tokens.isLightTheme) {
+                                listOf(
+                                    Color(0xFFEEF4FF).copy(alpha = 0.56f),
+                                    Color(0xFFDCE8FC).copy(alpha = 0.48f),
+                                    Color(0xFFCADBFA).copy(alpha = 0.58f)
+                                )
+                            } else {
+                                listOf(
+                                    Color(0xFF040B1F).copy(alpha = 0.58f),
+                                    Color(0xFF081840).copy(alpha = 0.44f),
+                                    Color(0xFF040B1F).copy(alpha = 0.64f)
+                                )
+                            }
+                        )
+                    )
+            )
+        }
+        content()
+    }
 }
 
 @Composable
@@ -338,7 +373,8 @@ fun SpinningVinylArtwork(
     artworkUri: String?,
     isPlaying: Boolean,
     size: Dp = 200.dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    customBackgroundUri: String? = null
 ) {
     val tokens = LocalKarlukTokens.current
     val infiniteTransition = rememberInfiniteTransition(label = "vinyl_spin")
@@ -353,6 +389,8 @@ fun SpinningVinylArtwork(
     )
 
     val effectiveAngle = if (isPlaying && !tokens.reducedMotion) angle else 0f
+    val hasCustomDiscBg = !customBackgroundUri.isNullOrBlank()
+    var artworkFailed by remember(artworkUri) { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -373,64 +411,98 @@ fun SpinningVinylArtwork(
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(size)
-                .rotate(effectiveAngle)
-                .clip(CircleShape)
-                .background(
-                    Brush.sweepGradient(
-                        colors = listOf(
-                            Color(0xFF0A142D),
-                            Color(0xFF1A3168),
-                            Color(0xFF070F26),
-                            Color(0xFF1B3A7A),
-                            Color(0xFF0A142D)
-                        )
-                    )
-                )
-                .border(2.5.dp, tokens.accentPrimary.copy(alpha = 0.72f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            // Subtle vinyl grooves
+        if (hasCustomDiscBg) {
             Box(
                 modifier = Modifier
-                    .size(size * 0.86f)
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(size * 0.72f)
-                    .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
-            )
-
-            // Center album art or music emblem
-            Box(
-                modifier = Modifier
-                    .size(size * 0.56f)
+                    .size(size)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(tokens.accentSecondary, tokens.accentViolet)
                         )
                     )
-                    .border(2.dp, Color.White.copy(alpha = 0.45f), CircleShape),
+                    .border(2.5.dp, tokens.accentPrimary.copy(alpha = 0.85f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                if (!artworkUri.isNullOrBlank()) {
-                    AsyncImage(
-                        model = artworkUri,
-                        contentDescription = "Album artwork",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                AsyncImage(
+                    model = customBackgroundUri,
+                    contentDescription = stringResource(R.string.now_playing_custom_bg),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Subtle glass/vinyl ring framing inside the disc
+                Box(
+                    modifier = Modifier
+                        .size(size * 0.88f)
+                        .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(size * 0.56f)
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .rotate(effectiveAngle)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.sweepGradient(
+                            colors = listOf(
+                                Color(0xFF0A142D),
+                                Color(0xFF1A3168),
+                                Color(0xFF070F26),
+                                Color(0xFF1B3A7A),
+                                Color(0xFF0A142D)
+                            )
+                        )
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.MusicNote,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(size * 0.28f)
-                    )
+                    .border(2.5.dp, tokens.accentPrimary.copy(alpha = 0.72f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                // Subtle vinyl grooves
+                Box(
+                    modifier = Modifier
+                        .size(size * 0.86f)
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(size * 0.72f)
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                )
+
+                // Center album art or music emblem
+                Box(
+                    modifier = Modifier
+                        .size(size * 0.56f)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(tokens.accentSecondary, tokens.accentViolet)
+                            )
+                        )
+                        .border(2.dp, Color.White.copy(alpha = 0.45f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!artworkUri.isNullOrBlank() && !artworkFailed) {
+                        AsyncImage(
+                            model = artworkUri,
+                            contentDescription = "Album artwork",
+                            contentScale = ContentScale.Crop,
+                            onError = { artworkFailed = true },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.MusicNote,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(size * 0.28f)
+                        )
+                    }
                 }
             }
         }
@@ -444,31 +516,84 @@ fun SpectrumVisualizerCanvas(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalKarlukTokens.current
-    Canvas(modifier = modifier) {
-        val count = spectrum.size.coerceAtLeast(1)
-        val totalWidth = size.width
-        val slotWidth = totalWidth / count
-        val barWidth = (slotWidth * 0.58f).coerceAtLeast(4f)
-        val maxHeight = size.height
+    val visualBarCount = 28
+    val peaks = remember { FloatArray(visualBarCount) { 0.08f } }
 
-        for (i in 0 until count) {
-            val energy = if (isPlaying) spectrum[i].coerceIn(0.05f, 1f) else 0.06f
-            val barHeight = (maxHeight * energy).coerceAtLeast(4f)
+    Canvas(modifier = modifier) {
+        val rawCount = spectrum.size.coerceAtLeast(1)
+        val totalWidth = size.width
+        val maxHeight = size.height
+        if (totalWidth <= 0f || maxHeight <= 0f) return@Canvas
+
+        val slotWidth = totalWidth / visualBarCount
+        val barWidth = (slotWidth * 0.56f).coerceIn(4f, 14f)
+        val dotRadius = (barWidth * 0.48f).coerceIn(2f, 5f)
+        val minBarHeight = 5f
+
+        for (i in 0 until visualBarCount) {
+            val mappedPos = (i.toFloat() / (visualBarCount - 1).coerceAtLeast(1)) * (rawCount - 1)
+            val lowIdx = mappedPos.toInt().coerceIn(0, rawCount - 1)
+            val highIdx = (lowIdx + 1).coerceIn(0, rawCount - 1)
+            val frac = mappedPos - lowIdx
+            val interpolated = spectrum[lowIdx] * (1f - frac) + spectrum[highIdx] * frac
+
+            // Gentle center-weighted lift when audio is active so outer and inner bars both dance smoothly
+            val energy = if (isPlaying) {
+                interpolated.coerceIn(0.08f, 1f)
+            } else {
+                0.08f
+            }
+
+            if (energy >= peaks[i]) {
+                peaks[i] = energy
+            } else {
+                peaks[i] = (peaks[i] - 0.018f).coerceAtLeast(energy)
+            }
+
+            val barHeight = (maxHeight * 0.84f * energy).coerceAtLeast(minBarHeight)
             val x = i * slotWidth + (slotWidth - barWidth) / 2f
             val y = maxHeight - barHeight
-            val ratio = i.toFloat() / (count - 1).coerceAtLeast(1)
-            val barColor = Color(
+
+            val ratio = i.toFloat() / (visualBarCount - 1).coerceAtLeast(1)
+            val topColor = Color(
                 red = tokens.accentPrimary.red * (1f - ratio) + tokens.accentViolet.red * ratio,
                 green = tokens.accentPrimary.green * (1f - ratio) + tokens.accentViolet.green * ratio,
                 blue = tokens.accentPrimary.blue * (1f - ratio) + tokens.accentViolet.blue * ratio,
-                alpha = if (isPlaying) 0.92f else 0.35f
+                alpha = if (isPlaying) 0.96f else 0.34f
             )
+            val baseColor = tokens.accentSecondary.copy(alpha = if (isPlaying) 0.55f else 0.18f)
+
+            // Soft glow halo behind active bar
+            if (isPlaying && !tokens.lowPowerMode && energy > 0.18f) {
+                drawRoundRect(
+                    color = topColor.copy(alpha = 0.22f),
+                    topLeft = Offset(x - 1.5f, (y - 2f).coerceAtLeast(0f)),
+                    size = Size(barWidth + 3f, (barHeight + 2f).coerceAtMost(maxHeight)),
+                    cornerRadius = CornerRadius(barWidth, barWidth)
+                )
+            }
+
             drawRoundRect(
-                color = barColor,
+                brush = Brush.verticalGradient(
+                    colors = listOf(topColor, baseColor),
+                    startY = y,
+                    endY = maxHeight
+                ),
                 topLeft = Offset(x, y),
                 size = Size(barWidth, barHeight),
                 cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
             )
+
+            // Floating peak cap dot above bar
+            if (isPlaying) {
+                val peakY = (maxHeight - (maxHeight * 0.84f * peaks[i]).coerceAtLeast(minBarHeight) - dotRadius * 1.9f)
+                    .coerceIn(dotRadius, maxHeight - minBarHeight)
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.78f),
+                    radius = dotRadius * 0.75f,
+                    center = Offset(x + barWidth / 2f, peakY)
+                )
+            }
         }
     }
 }
@@ -507,6 +632,7 @@ fun SongArtworkThumb(
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalKarlukTokens.current
+    var imageFailed by remember(artworkUri) { mutableStateOf(false) }
     Box(
         modifier = modifier
             .size(size)
@@ -519,11 +645,12 @@ fun SongArtworkThumb(
             .border(1.dp, tokens.glassBorder, RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center
     ) {
-        if (!artworkUri.isNullOrBlank()) {
+        if (!artworkUri.isNullOrBlank() && !imageFailed) {
             AsyncImage(
                 model = artworkUri,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                onError = { imageFailed = true },
                 modifier = Modifier.fillMaxSize()
             )
         } else {
@@ -547,7 +674,6 @@ fun SongRowItem(
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
     onMoreClick: () -> Unit,
-    onDeleteClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val tokens = LocalKarlukTokens.current
@@ -574,7 +700,10 @@ fun SongRowItem(
                 Spacer(modifier = Modifier.width(2.dp))
             }
 
-            SongArtworkThumb(artworkUri = song.artworkUri, size = 48.dp)
+            SongArtworkThumb(
+                artworkUri = song.customBackgroundUri?.takeIf { it.isNotBlank() } ?: song.artworkUri,
+                size = 48.dp
+            )
 
             Spacer(modifier = Modifier.width(10.dp))
 
@@ -619,24 +748,11 @@ fun SongRowItem(
                 )
             }
 
-            if (onDeleteClick != null) {
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("song_delete_${song.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.DeleteOutline,
-                        contentDescription = stringResource(R.string.action_delete),
-                        tint = Color(0xFFFF6E8A)
-                    )
-                }
-            }
-
             IconButton(
                 onClick = onMoreClick,
-                modifier = Modifier.minimumInteractiveComponentSize()
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .testTag("song_more_${song.id}")
             ) {
                 Icon(
                     imageVector = Icons.Rounded.MoreVert,
@@ -679,7 +795,10 @@ fun MiniPlayerBar(
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SongArtworkThumb(artworkUri = song.artworkUri, size = 44.dp)
+                SongArtworkThumb(
+                    artworkUri = song.customBackgroundUri?.takeIf { it.isNotBlank() } ?: song.artworkUri,
+                    size = 44.dp
+                )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
