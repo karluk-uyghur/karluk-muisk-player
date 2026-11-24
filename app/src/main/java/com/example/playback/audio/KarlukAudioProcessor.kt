@@ -236,14 +236,20 @@ class KarlukAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        refreshCoefficientsIfNeeded()
-
-        val outputBuffer = replaceOutputBuffer(remaining)
         val channels = inputAudioFormat.channelCount.coerceAtLeast(1)
         val isFloatPcm = inputAudioFormat.encoding == C.ENCODING_PCM_FLOAT
         val bytesPerSample = if (isFloatPcm) 4 else 2
         val totalSamples = remaining / bytesPerSample
-        val frameCount = (totalSamples / channels).coerceAtLeast(1)
+        val frameCount = totalSamples / channels
+        if (frameCount <= 0) {
+            val outputBuffer = replaceOutputBuffer(remaining)
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
+            return
+        }
+
+        refreshCoefficientsIfNeeded()
+        val outputBuffer = replaceOutputBuffer(remaining)
 
         val currentBalance = balance.coerceIn(-1f, 1f)
         val leftGain = if (currentBalance > 0f) (1f - currentBalance) else 1f

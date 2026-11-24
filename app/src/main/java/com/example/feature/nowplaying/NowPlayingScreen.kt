@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,7 +63,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -74,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
 import com.example.core.common.ShareUtils
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.FormatBadge
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.GlowingPlayButton
@@ -89,6 +94,7 @@ import com.example.domain.model.PlaybackStatus
 import com.example.domain.model.RepeatModeOption
 import com.example.domain.model.Song
 import com.example.feature.common.RenameSongDialog
+import kotlin.math.abs
 
 @Composable
 fun NowPlayingScreen(
@@ -110,15 +116,21 @@ fun NowPlayingScreen(
     onOpenSleepTimer: () -> Unit,
     onPickSongBackground: (Long, Uri) -> Unit = { _, _ -> },
     onClearSongBackground: (Long) -> Unit = {},
-    onRenameSong: (Long, String) -> Unit = { _, _ -> }
+    onRenameSong: (Long, String) -> Unit = { _, _ -> },
+    onDeleteSong: (Long) -> Unit = {}
 ) {
     val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
+    val density = LocalDensity.current
     val song = playbackState.currentSong
     var speedMenuOpen by remember { mutableStateOf(false) }
     var bgMenuOpen by remember { mutableStateOf(false) }
+    var pencilMenuOpen by remember { mutableStateOf(false) }
     var pendingSongIdForBg by remember { mutableStateOf<Long?>(null) }
     var renameTarget by remember { mutableStateOf<Song?>(null) }
+    var deleteTarget by remember { mutableStateOf<Song?>(null) }
+    var swipeOffsetX by remember { mutableFloatStateOf(0f) }
+    val swipeThresholdPx = with(density) { 80.dp.toPx() }
 
     val songBgPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -131,7 +143,29 @@ fun NowPlayingScreen(
     }
 
     KarlukBackground {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { swipeOffsetX = 0f },
+                        onDragCancel = { swipeOffsetX = 0f },
+                        onDragEnd = {
+                            if (abs(swipeOffsetX) >= swipeThresholdPx) {
+                                swipeOffsetX = 0f
+                                onBack()
+                            } else {
+                                swipeOffsetX = 0f
+                            }
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            swipeOffsetX = (swipeOffsetX + dragAmount).coerceIn(-260f, 260f)
+                        }
+                    )
+                }
+                .graphicsLayer { translationX = swipeOffsetX * 0.45f },
+            contentAlignment = Alignment.TopCenter
+        ) {
             Column(
                 modifier = Modifier
                     .widthIn(max = 600.dp)
@@ -338,18 +372,58 @@ fun NowPlayingScreen(
                         }
 
                         if (song != null) {
-                            IconButton(
-                                onClick = { renameTarget = song },
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("now_playing_rename_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Edit,
-                                    contentDescription = stringResource(R.string.rename_nasheed_title),
-                                    tint = tokens.accentPrimary,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            Box {
+                                IconButton(
+                                    onClick = { pencilMenuOpen = true },
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("now_playing_rename_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Edit,
+                                        contentDescription = stringResource(R.string.rename_nasheed_title),
+                                        tint = tokens.accentPrimary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = pencilMenuOpen,
+                                    onDismissRequest = { pencilMenuOpen = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.rename_nasheed_title)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Edit,
+                                                contentDescription = null,
+                                                tint = tokens.accentPrimary
+                                            )
+                                        },
+                                        onClick = {
+                                            pencilMenuOpen = false
+                                            renameTarget = song
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = stringResource(R.string.action_delete),
+                                                color = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Rounded.DeleteOutline,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        onClick = {
+                                            pencilMenuOpen = false
+                                            deleteTarget = song
+                                        }
+                                    )
+                                }
                             }
                             IconButton(
                                 onClick = { onToggleFavorite(song.id) },
@@ -495,6 +569,17 @@ fun NowPlayingScreen(
             song = target,
             onDismiss = { renameTarget = null },
             onConfirm = { newTitle -> onRenameSong(target.id, newTitle) }
+        )
+    }
+
+    deleteTarget?.let { target ->
+        DeleteConfirmDialog(
+            itemTitle = target.title,
+            onConfirm = {
+                deleteTarget = null
+                onDeleteSong(target.id)
+            },
+            onDismiss = { deleteTarget = null }
         )
     }
 }

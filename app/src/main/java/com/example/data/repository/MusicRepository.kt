@@ -1,8 +1,12 @@
 package com.example.data.repository
 
+import android.app.RecoverableSecurityException
 import android.content.Context
 import android.content.Intent
+import android.content.IntentSender
 import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import androidx.documentfile.provider.DocumentFile
 import com.example.data.database.ExcludedFolderEntity
 import com.example.data.database.FavoriteEntity
@@ -16,6 +20,8 @@ import com.example.data.database.SearchHistoryEntity
 import com.example.data.database.SongBackgroundEntity
 import com.example.data.database.SongCustomTitleEntity
 import com.example.data.database.SongEntity
+import com.example.data.database.TrashItemEntity
+import com.example.data.media.AudioContentFilter
 import com.example.data.media.MediaScanner
 import com.example.domain.model.Album
 import com.example.domain.model.Artist
@@ -33,6 +39,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+data class PermanentDeletePlan(
+    val intentSender: IntentSender?,
+    val itemsToFinalize: List<TrashItemEntity>,
+    val deletedCount: Int
+)
+
 class MusicRepository(
     private val context: Context,
     private val dao: KarlukDao,
@@ -46,20 +58,53 @@ class MusicRepository(
         backgrounds.associateBy { it.songId } to titles.associateBy { it.songId }
     }
 
+    private val hiddenFiltersFlow = combine(
+        dao.observeExcludedFolders(),
+        dao.observeTrashedSongIds()
+    ) { excluded, trashedIds ->
+        excluded.map { it.folderPath }.toHashSet() to trashedIds.toHashSet()
+    }
+
     val allSongsFlow: Flow<List<Song>> = combine(
         dao.observeAllSongs(),
         dao.observeFavorites(),
         dao.observeHistory(),
-        dao.observeExcludedFolders(),
+        hiddenFiltersFlow,
         songOverridesFlow
-    ) { songs, favorites, history, excluded, overrides ->
+    ) { songs, favorites, history, hiddenFilters, overrides ->
         val favIds = favorites.map { it.songId }.toHashSet()
         val historyMap = history.associateBy { it.songId }
-        val excludedPaths = excluded.map { it.folderPath }.toHashSet()
+        val (excludedPaths, trashedSongIds) = hiddenFilters
         val (bgMap, titleMap) = overrides
 
         songs
-            .filter { it.folderPath !in excludedPaths }
+            .filter { !it.isFilteredMusic && it.folderPath !in excludedPaths && it.id !in trashedSongIds }
+            .map { entity ->
+                val hist = historyMap[entity.id]
+                entity.toDomain(
+                    isFavorite = entity.id in favIds,
+                    playCount = hist?.playCount ?: 0,
+                    lastPlayedAt = hist?.lastPlayedAt ?: 0L,
+                    customBackgroundUri = bgMap[entity.id]?.backgroundUri,
+                    customTitle = titleMap[entity.id]?.customTitle
+                )
+            }
+    }
+
+    val filteredMusicSongsFlow: Flow<List<Song>> = combine(
+        dao.observeAllSongs(),
+        dao.observeFavorites(),
+        dao.observeHistory(),
+        hiddenFiltersFlow,
+        songOverridesFlow
+    ) { songs, favorites, history, hiddenFilters, overrides ->
+        val favIds = favorites.map { it.songId }.toHashSet()
+        val historyMap = history.associateBy { it.songId }
+        val (excludedPaths, trashedSongIds) = hiddenFilters
+        val (bgMap, titleMap) = overrides
+
+        songs
+            .filter { it.isFilteredMusic && it.folderPath !in excludedPaths && it.id !in trashedSongIds }
             .map { entity ->
                 val hist = historyMap[entity.id]
                 entity.toDomain(
@@ -132,32 +177,37 @@ class MusicRepository(
         dao.observePlaylistsWithSongs(),
         dao.observeFavorites(),
         dao.observeHistory(),
+        hiddenFiltersFlow,
         songOverridesFlow
-    ) { list, favs, history, overrides ->
+    ) { list, favs, history, hiddenFilters, overrides ->
         val favIds = favs.map { it.songId }.toHashSet()
         val historyMap = history.associateBy { it.songId }
+        val (excludedPaths, trashedSongIds) = hiddenFilters
         val (bgMap, titleMap) = overrides
         list.map { item ->
             Playlist(
                 id = item.playlist.id,
                 name = item.playlist.name,
                 createdAt = item.playlist.createdAt,
-                songs = item.songs.map { s ->
-                    val hist = historyMap[s.id]
-                    s.toDomain(
-                        isFavorite = s.id in favIds,
-                        playCount = hist?.playCount ?: 0,
-                        lastPlayedAt = hist?.lastPlayedAt ?: 0L,
-                        customBackgroundUri = bgMap[s.id]?.backgroundUri,
-                        customTitle = titleMap[s.id]?.customTitle
-                    )
-                }
+                songs = item.songs
+                    .filter { !it.isFilteredMusic && it.folderPath !in excludedPaths && it.id !in trashedSongIds }
+                    .map { s ->
+                        val hist = historyMap[s.id]
+                        s.toDomain(
+                            isFavorite = s.id in favIds,
+                            playCount = hist?.playCount ?: 0,
+                            lastPlayedAt = hist?.lastPlayedAt ?: 0L,
+                            customBackgroundUri = bgMap[s.id]?.backgroundUri,
+                            customTitle = titleMap[s.id]?.customTitle
+                        )
+                    }
             )
         }
     }
 
     val safFoldersFlow: Flow<List<SafFolderEntity>> = dao.observeSafFolders()
     val excludedFoldersFlow: Flow<List<ExcludedFolderEntity>> = dao.observeExcludedFolders()
+    val trashItemsFlow: Flow<List<TrashItemEntity>> = dao.observeTrashItems()
     val searchHistoryFlow: Flow<List<String>> = dao.observeSearchHistory().map { list -> list.map { it.query } }
 
     val storageStatsFlow: Flow<StorageStats> = combine(
@@ -175,25 +225,57 @@ class MusicRepository(
     }
 
     suspend fun rescanAllMedia(): Int {
-        val mediaStoreSongs = mediaScanner.scanMediaStore()
+        val approvedIds = dao.getUserApprovedSongIdsOnce().toHashSet()
+        val mediaStoreSongs = mediaScanner.scanMediaStore().map { entity ->
+            if (entity.id in approvedIds) {
+                entity.copy(isFilteredMusic = false, isUserApprovedNasheed = true)
+            } else {
+                entity
+            }
+        }
         if (mediaStoreSongs.isNotEmpty()) {
             dao.upsertSongs(mediaStoreSongs)
             dao.deleteMissingMediaStoreSongs(mediaStoreSongs.map { it.id })
+        } else {
+            dao.deleteAllMediaStoreSongs()
         }
 
         // Also refresh SAF folders that have persisted URI permissions
         val safFolders = dao.getSafFoldersOnce()
-        var safCount = 0
         for (folder in safFolders) {
-            val uri = Uri.parse(folder.treeUri)
-            val result = mediaScanner.scanSafTree(uri, folder.displayName)
-            if (result.songs.isNotEmpty()) {
-                dao.upsertSongs(result.songs)
-                safCount += result.songs.size
+            runCatching {
+                val uri = Uri.parse(folder.treeUri)
+                val result = mediaScanner.scanSafTree(uri, folder.displayName)
+                val resolvedSafSongs = result.songs.map { entity ->
+                    if (entity.id in approvedIds) {
+                        entity.copy(isFilteredMusic = false, isUserApprovedNasheed = true)
+                    } else {
+                        entity
+                    }
+                }
+                if (resolvedSafSongs.isNotEmpty()) {
+                    dao.upsertSongs(resolvedSafSongs)
+                }
+                result.lyrics.forEach { dao.upsertLyrics(it) }
             }
-            result.lyrics.forEach { dao.upsertLyrics(it) }
         }
-        return mediaStoreSongs.size + safCount
+
+        // Route any unapproved stored tracks matching DJ/instrumental/music rules into Filtered Music
+        val remainingStored = dao.getAllSongsOnce()
+        for (song in remainingStored) {
+            if (!song.isUserApprovedNasheed && !song.isFilteredMusic && AudioContentFilter.isExcludedMusicTrack(
+                    title = song.title,
+                    artist = song.artist,
+                    album = song.album,
+                    genre = song.genre,
+                    displayName = song.title,
+                    folderPath = song.folderPath
+                )
+            ) {
+                dao.markSongAsFilteredMusic(song.id)
+            }
+        }
+        return dao.getAllSongsOnce().count { !it.isFilteredMusic }
     }
 
     suspend fun addSafFolder(treeUri: Uri): Int {
@@ -204,23 +286,60 @@ class MusicRepository(
             )
         } catch (_: Exception) {
         }
+        val approvedIds = dao.getUserApprovedSongIdsOnce().toHashSet()
         val doc = DocumentFile.fromTreeUri(context, treeUri)
         val name = doc?.name ?: "Audio Directory"
         dao.insertSafFolder(SafFolderEntity(treeUri = treeUri.toString(), displayName = name))
+        dao.deleteExcludedFolder(treeUri.toString())
         val result = mediaScanner.scanSafTree(treeUri, name)
-        if (result.songs.isNotEmpty()) {
-            dao.upsertSongs(result.songs)
+        val resolvedSongs = result.songs.map { entity ->
+            if (entity.id in approvedIds) {
+                entity.copy(isFilteredMusic = false, isUserApprovedNasheed = true)
+            } else {
+                entity
+            }
+        }
+        if (resolvedSongs.isNotEmpty()) {
+            dao.upsertSongs(resolvedSongs)
         }
         result.lyrics.forEach { dao.upsertLyrics(it) }
-        return result.songs.size
+        return resolvedSongs.count { !it.isFilteredMusic }
     }
 
-    suspend fun removeSafFolder(treeUri: String) {
-        dao.deleteSafFolder(treeUri)
-        dao.deleteSafSongsInFolder(treeUri)
+    suspend fun removeSafFolder(treeUri: String): List<Long> {
+        val safFolder = dao.getSafFoldersOnce().firstOrNull { it.treeUri == treeUri }
+        val songsInFolder = dao.getSongsInFolderOnce(treeUri)
+        val alreadyTrashed = dao.getTrashItemsOnce().any { it.itemType == "FOLDER" && it.folderPath == treeUri }
+        if (!alreadyTrashed) {
+            dao.insertTrashItem(
+                TrashItemEntity(
+                    itemType = "FOLDER",
+                    refId = -1L,
+                    title = safFolder?.displayName ?: "SAF Directory",
+                    subtitle = songsInFolder.size.toString(),
+                    uri = treeUri,
+                    folderPath = treeUri,
+                    folderName = safFolder?.displayName ?: "SAF Directory",
+                    isSafTrack = true,
+                    fileSize = songsInFolder.sumOf { it.fileSize }
+                )
+            )
+        }
+        dao.insertExcludedFolder(
+            ExcludedFolderEntity(
+                folderPath = treeUri,
+                folderName = safFolder?.displayName ?: "SAF Directory"
+            )
+        )
+        return songsInFolder.map { it.id }
     }
 
-    suspend fun importAudioFiles(uris: List<Uri>): List<Song> {
+    data class ImportedFilesOutcome(
+        val songs: List<Song>,
+        val skippedMusicCount: Int
+    )
+
+    suspend fun importAudioFiles(uris: List<Uri>): ImportedFilesOutcome {
         uris.forEach { uri ->
             try {
                 context.contentResolver.takePersistableUriPermission(
@@ -230,21 +349,52 @@ class MusicRepository(
             } catch (_: Exception) {
             }
         }
-        val entities = mediaScanner.importSafFiles(uris)
-        if (entities.isNotEmpty()) {
-            dao.upsertSongs(entities)
+        val approvedIds = dao.getUserApprovedSongIdsOnce().toHashSet()
+        val result = mediaScanner.importSafFiles(uris)
+        val resolvedEntities = result.songs.map { entity ->
+            if (entity.id in approvedIds) {
+                entity.copy(isFilteredMusic = false, isUserApprovedNasheed = true)
+            } else {
+                entity
+            }
         }
-        return entities.map { it.toDomain() }
+        if (resolvedEntities.isNotEmpty()) {
+            dao.upsertSongs(resolvedEntities)
+        }
+        val normalNasheeds = resolvedEntities.filter { !it.isFilteredMusic }.map { it.toDomain() }
+        val filteredCount = resolvedEntities.count { it.isFilteredMusic }
+        return ImportedFilesOutcome(
+            songs = normalNasheeds,
+            skippedMusicCount = filteredCount
+        )
     }
 
     suspend fun importSingleExternalUri(uri: Uri): Song? {
         val existing = dao.getAllSongsOnce().firstOrNull { it.uri == uri.toString() }
         if (existing != null) {
+            if (!existing.isUserApprovedNasheed && AudioContentFilter.isExcludedMusicTrack(
+                    title = existing.title,
+                    artist = existing.artist,
+                    album = existing.album,
+                    genre = existing.genre,
+                    folderPath = existing.folderPath
+                )
+            ) {
+                if (!existing.isFilteredMusic) {
+                    dao.markSongAsFilteredMusic(existing.id)
+                }
+                return null
+            }
             return existing.toDomain(isFavorite = dao.isFavorite(existing.id))
         }
-        val entity = mediaScanner.extractSongFromUri(uri) ?: return null
+        val entity = mediaScanner.extractSongFromUri(uri, filterMusicTracks = true) ?: return null
         dao.upsertSongs(listOf(entity))
-        return entity.toDomain()
+        return if (entity.isFilteredMusic) null else entity.toDomain()
+    }
+
+    suspend fun approveFilteredSongsAsNasheed(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        dao.approveFilteredSongsAsNasheed(songIds.distinct())
     }
 
     suspend fun toggleFavorite(songId: Long) {
@@ -273,8 +423,50 @@ class MusicRepository(
         )
     }
 
+    suspend fun moveRecentSong(songId: Long, delta: Int) {
+        val trashedIds = dao.getTrashItemsOnce().filter { it.itemType == "SONG" }.map { it.refId }.toHashSet()
+        val excludedPaths = dao.getAllSongsOnce().let { _ -> emptySet<String>() }
+        val visibleSongIds = allSongsForOrdering()
+        val currentHistory = dao.getHistoryOnce()
+            .filter { it.songId !in trashedIds && it.songId in visibleSongIds }
+            .toMutableList()
+        if (currentHistory.size < 2) return
+
+        // Ensure strictly distinct descending timestamps so swapping positions is deterministic
+        val baseTime = System.currentTimeMillis()
+        currentHistory.forEachIndexed { idx, entry ->
+            val normalizedTime = baseTime - idx * 1000L
+            if (entry.lastPlayedAt != normalizedTime) {
+                currentHistory[idx] = entry.copy(lastPlayedAt = normalizedTime)
+                dao.updateHistoryTimestamp(entry.songId, normalizedTime)
+            }
+        }
+
+        val currentIdx = currentHistory.indexOfFirst { it.songId == songId }
+        if (currentIdx < 0) return
+        val targetIdx = (currentIdx + delta).coerceIn(0, currentHistory.lastIndex)
+        if (targetIdx == currentIdx) return
+
+        val entryA = currentHistory[currentIdx]
+        val entryB = currentHistory[targetIdx]
+        dao.updateHistoryTimestamp(entryA.songId, entryB.lastPlayedAt)
+        dao.updateHistoryTimestamp(entryB.songId, entryA.lastPlayedAt)
+    }
+
+    private suspend fun allSongsForOrdering(): Set<Long> {
+        return dao.getAllSongsOnce().map { it.id }.toHashSet()
+    }
+
     suspend fun clearHistory() {
         dao.clearHistory()
+    }
+
+    suspend fun removeSongFromHistory(songId: Long) {
+        dao.deleteHistoryForSong(songId)
+    }
+
+    suspend fun removeSongsFromHistory(songIds: List<Long>) {
+        songIds.forEach { dao.deleteHistoryForSong(it) }
     }
 
     suspend fun createPlaylist(name: String, initialSongIds: List<Long> = emptyList()): Long {
@@ -341,18 +533,233 @@ class MusicRepository(
         dao.clearSearchHistory()
     }
 
-    suspend fun excludeFolder(folderPath: String, folderName: String) {
+    suspend fun excludeFolder(folderPath: String, folderName: String): List<Long> {
         dao.insertExcludedFolder(ExcludedFolderEntity(folderPath = folderPath, folderName = folderName))
+        val songsInFolder = dao.getSongsInFolderOnce(folderPath)
+        val alreadyTrashed = dao.getTrashItemsOnce().any { it.itemType == "FOLDER" && it.folderPath == folderPath }
+        if (!alreadyTrashed) {
+            dao.insertTrashItem(
+                TrashItemEntity(
+                    itemType = "FOLDER",
+                    refId = -1L,
+                    title = folderName,
+                    subtitle = songsInFolder.size.toString(),
+                    uri = folderPath,
+                    folderPath = folderPath,
+                    folderName = folderName,
+                    isSafTrack = songsInFolder.any { it.isSafTrack },
+                    fileSize = songsInFolder.sumOf { it.fileSize }
+                )
+            )
+        }
+        return songsInFolder.map { it.id }
     }
 
     suspend fun restoreFolder(folderPath: String) {
         dao.deleteExcludedFolder(folderPath)
+        dao.getTrashItemsOnce()
+            .filter { it.itemType == "FOLDER" && it.folderPath == folderPath }
+            .forEach { dao.deleteTrashItem(it.trashId) }
     }
 
     suspend fun removeSongFromLibrary(songId: Long) {
-        clearSongBackground(songId)
-        dao.deleteSongCustomTitle(songId)
-        dao.deleteSongById(songId)
+        removeSongsFromLibrary(listOf(songId))
+    }
+
+    suspend fun removeSongsFromLibrary(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        val existingTrashedIds = dao.getTrashItemsOnce()
+            .asSequence()
+            .filter { it.itemType == "SONG" }
+            .map { it.refId }
+            .toHashSet()
+        for (songId in songIds.distinct()) {
+            if (songId in existingTrashedIds) continue
+            val entity = dao.getSongById(songId) ?: continue
+            val customTitle = dao.getSongCustomTitleOnce(songId)?.customTitle
+            dao.insertTrashItem(
+                TrashItemEntity(
+                    itemType = "SONG",
+                    refId = entity.id,
+                    title = customTitle?.takeIf { it.isNotBlank() } ?: entity.title,
+                    subtitle = entity.artist,
+                    uri = entity.uri,
+                    folderPath = entity.folderPath,
+                    folderName = entity.folderName,
+                    isSafTrack = entity.isSafTrack,
+                    formatLabel = entity.formatLabel,
+                    fileSize = entity.fileSize,
+                    duration = entity.duration
+                )
+            )
+            existingTrashedIds.add(songId)
+        }
+    }
+
+    suspend fun restoreTrashItem(item: TrashItemEntity) {
+        if (item.itemType == "FOLDER") {
+            dao.deleteExcludedFolder(item.folderPath)
+        }
+        dao.deleteTrashItem(item.trashId)
+    }
+
+    suspend fun preparePermanentDelete(items: List<TrashItemEntity>): PermanentDeletePlan =
+        withContext(Dispatchers.IO) {
+            if (items.isEmpty()) {
+                return@withContext PermanentDeletePlan(null, emptyList(), 0)
+            }
+
+            val mediaStoreUris = mutableListOf<Uri>()
+            val safOrFileUris = mutableListOf<Uri>()
+            val safTreeUris = mutableListOf<Uri>()
+
+            for (item in items) {
+                if (item.itemType == "SONG") {
+                    val uri = runCatching { Uri.parse(item.uri) }.getOrNull()
+                    if (uri != null && !uri.toString().isNullOrBlank()) {
+                        if (!item.isSafTrack && item.uri.startsWith("content://media")) {
+                            mediaStoreUris.add(uri)
+                        } else {
+                            safOrFileUris.add(uri)
+                        }
+                    }
+                } else if (item.itemType == "FOLDER") {
+                    val folderSongs = runCatching { dao.getSongsInFolderOnce(item.folderPath) }.getOrDefault(emptyList())
+                    for (song in folderSongs) {
+                        val sUri = runCatching { Uri.parse(song.uri) }.getOrNull() ?: continue
+                        if (!song.isSafTrack && song.uri.startsWith("content://media")) {
+                            mediaStoreUris.add(sUri)
+                        } else {
+                            safOrFileUris.add(sUri)
+                        }
+                    }
+                    if (item.isSafTrack && item.uri.startsWith("content://")) {
+                        runCatching { Uri.parse(item.uri) }.getOrNull()?.let { safTreeUris.add(it) }
+                    }
+                }
+            }
+
+            // Delete SAF / local files directly where write access is available
+            var directDeletedCount = 0
+            for (uri in safOrFileUris) {
+                val ok = deleteNonMediaStoreUri(uri)
+                if (ok) directDeletedCount++
+            }
+            for (treeUri in safTreeUris) {
+                runCatching {
+                    DocumentFile.fromTreeUri(context, treeUri)?.delete()
+                }
+            }
+
+            // Verify MediaStore URIs actually exist before requesting system confirmation
+            val validMediaUris = mediaStoreUris.distinct().filter { uriExistsInMediaStore(it) }
+            if (validMediaUris.isNotEmpty()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    try {
+                        val pendingIntent = MediaStore.createDeleteRequest(context.contentResolver, validMediaUris)
+                        return@withContext PermanentDeletePlan(
+                            intentSender = pendingIntent.intentSender,
+                            itemsToFinalize = items,
+                            deletedCount = directDeletedCount
+                        )
+                    } catch (_: Throwable) {
+                        // Fall through to best-effort finalize if MediaStore rejects batch delete
+                    }
+                } else {
+                    for (uri in validMediaUris) {
+                        try {
+                            val rows = context.contentResolver.delete(uri, null, null)
+                            if (rows > 0) directDeletedCount++
+                        } catch (sec: SecurityException) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && sec is RecoverableSecurityException) {
+                                return@withContext PermanentDeletePlan(
+                                    intentSender = sec.userAction.actionIntent.intentSender,
+                                    itemsToFinalize = items,
+                                    deletedCount = directDeletedCount
+                                )
+                            }
+                        } catch (_: Throwable) {
+                        }
+                    }
+                }
+            }
+
+            // No user confirmation prompt needed -> finalize DB removal right away
+            finalizePermanentDelete(items)
+            PermanentDeletePlan(
+                intentSender = null,
+                itemsToFinalize = emptyList(),
+                deletedCount = items.size
+            )
+        }
+
+    private fun uriExistsInMediaStore(uri: Uri): Boolean {
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.MediaColumns._ID),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                cursor.count > 0
+            } ?: false
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    suspend fun finalizePermanentDelete(items: List<TrashItemEntity>) = withContext(Dispatchers.IO) {
+        for (item in items) {
+            runCatching {
+                if (item.itemType == "SONG") {
+                    val songId = item.refId
+                    clearSongBackground(songId)
+                    dao.deleteSongCustomTitle(songId)
+                    dao.deleteFavorite(songId)
+                    dao.deleteHistoryForSong(songId)
+                    dao.deleteLyrics(songId)
+                    dao.removeSongFromAllPlaylists(songId)
+                    dao.deleteSongById(songId)
+                } else if (item.itemType == "FOLDER") {
+                    val songs = dao.getSongsInFolderOnce(item.folderPath)
+                    songs.forEach { song ->
+                        clearSongBackground(song.id)
+                        dao.deleteSongCustomTitle(song.id)
+                        dao.deleteFavorite(song.id)
+                        dao.deleteHistoryForSong(song.id)
+                        dao.deleteLyrics(song.id)
+                        dao.removeSongFromAllPlaylists(song.id)
+                    }
+                    dao.deleteSongsInFolder(item.folderPath)
+                    dao.deleteExcludedFolder(item.folderPath)
+                    dao.deleteSafFolder(item.folderPath)
+                }
+            }
+            runCatching { dao.deleteTrashItem(item.trashId) }
+        }
+    }
+
+    private fun deleteNonMediaStoreUri(uri: Uri): Boolean {
+        return try {
+            when (uri.scheme) {
+                "file" -> {
+                    val path = uri.path ?: return false
+                    File(path).delete()
+                }
+                "content" -> {
+                    val doc = DocumentFile.fromSingleUri(context, uri)
+                    if (doc != null && doc.exists()) {
+                        doc.delete()
+                    } else {
+                        context.contentResolver.delete(uri, null, null) > 0
+                    }
+                }
+                else -> false
+            }
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     suspend fun renameSong(songId: Long, newTitle: String) {
@@ -440,6 +847,8 @@ class MusicRepository(
         isFavorite = isFavorite,
         playCount = playCount,
         lastPlayedAt = lastPlayedAt,
-        customBackgroundUri = customBackgroundUri
+        customBackgroundUri = customBackgroundUri,
+        isFilteredMusic = isFilteredMusic,
+        isUserApprovedNasheed = isUserApprovedNasheed
     )
 }

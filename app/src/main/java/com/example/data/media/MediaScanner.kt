@@ -1,12 +1,15 @@
 package com.example.data.media
 
+import android.Manifest
 import android.content.ContentUris
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import com.example.data.database.LyricsEntity
 import com.example.data.database.SongEntity
@@ -37,6 +40,15 @@ class MediaScanner(private val context: Context) {
     }
 
     suspend fun scanMediaStore(): List<SongEntity> = withContext(Dispatchers.IO) {
+        val requiredPerm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        if (ContextCompat.checkSelfPermission(context, requiredPerm) != PackageManager.PERMISSION_GRANTED) {
+            return@withContext emptyList()
+        }
+
         val songs = mutableListOf<SongEntity>()
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
@@ -56,6 +68,9 @@ class MediaScanner(private val context: Context) {
             add(MediaStore.Audio.Media.DATE_ADDED)
             add(MediaStore.Audio.Media.TRACK)
             add(MediaStore.Audio.Media.DISPLAY_NAME)
+            add(MediaStore.Audio.Media.IS_RINGTONE)
+            add(MediaStore.Audio.Media.IS_NOTIFICATION)
+            add(MediaStore.Audio.Media.IS_ALARM)
             @Suppress("DEPRECATION")
             add(MediaStore.Audio.Media.DATA)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -87,6 +102,9 @@ class MediaScanner(private val context: Context) {
                 val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
                 val trackCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
                 val displayCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+                val ringtoneCol = cursor.getColumnIndex(MediaStore.Audio.Media.IS_RINGTONE)
+                val notifCol = cursor.getColumnIndex(MediaStore.Audio.Media.IS_NOTIFICATION)
+                val alarmCol = cursor.getColumnIndex(MediaStore.Audio.Media.IS_ALARM)
                 @Suppress("DEPRECATION")
                 val dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA)
                 val relPathCol = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -103,12 +121,28 @@ class MediaScanner(private val context: Context) {
                     val duration = cursor.getLong(durationCol)
                     val size = cursor.getLong(sizeCol)
 
+                    val isRingtone = if (ringtoneCol >= 0) cursor.getInt(ringtoneCol) != 0 else false
+                    val isNotif = if (notifCol >= 0) cursor.getInt(notifCol) != 0 else false
+                    val isAlarm = if (alarmCol >= 0) cursor.getInt(alarmCol) != 0 else false
+                    if (isRingtone || isNotif || isAlarm) continue
+
+                    val rawPath = if (dataCol >= 0) cursor.getString(dataCol) else null
+                    if (!rawPath.isNullOrBlank() && (
+                            rawPath.startsWith("/system/") ||
+                            rawPath.startsWith("/product/") ||
+                            rawPath.startsWith("/vendor/") ||
+                            rawPath.startsWith("/apex/")
+                        )
+                    ) {
+                        continue
+                    }
+
                     val ext = displayName.substringAfterLast('.', "").lowercase()
                     val isSupportedAudio = mimeType.startsWith("audio/") ||
                         mimeType == "application/ogg" ||
                         ext in SUPPORTED_EXTENSIONS
 
-                    // Skip zero-byte files or tiny system UI sound effects (<1.5s) unless explicitly audio format
+                    // Skip zero-byte files or tiny system sound effects
                     if (!isSupportedAudio || size <= 0L) continue
 
                     val contentUri = ContentUris.withAppendedId(
@@ -120,7 +154,6 @@ class MediaScanner(private val context: Context) {
                         Uri.parse("content://media/external/audio/albumart/$albumId").toString()
                     } else null
 
-                    val rawPath = if (dataCol >= 0) cursor.getString(dataCol) else null
                     val relPath = if (relPathCol >= 0) cursor.getString(relPathCol) else null
                     val folderPath = when {
                         !rawPath.isNullOrBlank() -> File(rawPath).parent ?: "Device"
@@ -140,6 +173,15 @@ class MediaScanner(private val context: Context) {
                     val trackNum = cursor.getInt(trackCol).takeIf { it > 0 }
                     val genre = if (genreCol >= 0) cursor.getString(genreCol)?.takeIf { it.isNotBlank() } else null
 
+                    val isFilteredMusicTrack = AudioContentFilter.isExcludedMusicTrack(
+                        title = rawTitle,
+                        artist = artist,
+                        album = album,
+                        genre = genre,
+                        displayName = displayName,
+                        folderPath = folderPath
+                    )
+
                     songs.add(
                         SongEntity(
                             id = id,
@@ -157,7 +199,9 @@ class MediaScanner(private val context: Context) {
                             genre = genre,
                             folderPath = folderPath,
                             folderName = folderName,
-                            isSafTrack = false
+                            isSafTrack = false,
+                            isFilteredMusic = isFilteredMusicTrack,
+                            isUserApprovedNasheed = false
                         )
                     )
                 }
@@ -185,7 +229,12 @@ class MediaScanner(private val context: Context) {
         val audioDocs = mutableListOf<Pair<DocumentFile, String>>()
 
         fun traverse(dir: DocumentFile, currentFolderName: String) {
-            dir.listFiles().forEach { child ->
+            val children = try {
+                dir.listFiles()
+            } catch (_: Exception) {
+                emptyArray()
+            }
+            children.forEach { child ->
                 if (child.isDirectory) {
                     traverse(child, child.name ?: currentFolderName)
                 } else if (child.isFile) {
@@ -209,7 +258,8 @@ class MediaScanner(private val context: Context) {
                 fallbackName = doc.name,
                 fallbackSize = doc.length(),
                 folderPath = treeUri.toString(),
-                folderName = subFolderName
+                folderName = subFolderName,
+                filterMusicTracks = true
             )
             if (song != null) {
                 collectedSongs.add(song)
@@ -227,16 +277,24 @@ class MediaScanner(private val context: Context) {
         SafScanResult(collectedSongs, collectedLyrics)
     }
 
-    suspend fun importSafFiles(uris: List<Uri>): List<SongEntity> = withContext(Dispatchers.IO) {
-        uris.mapNotNull { uri ->
+    data class SafFileImportResult(
+        val songs: List<SongEntity>,
+        val skippedMusicCount: Int
+    )
+
+    suspend fun importSafFiles(uris: List<Uri>): SafFileImportResult = withContext(Dispatchers.IO) {
+        val imported = uris.mapNotNull { uri ->
             extractSongFromUri(
                 uri = uri,
                 fallbackName = null,
                 fallbackSize = 0L,
                 folderPath = "saf_imports",
-                folderName = "Imported Files"
+                folderName = "Imported Files",
+                filterMusicTracks = true
             )
         }
+        val filteredCount = imported.count { it.isFilteredMusic }
+        SafFileImportResult(songs = imported, skippedMusicCount = filteredCount)
     }
 
     fun extractSongFromUri(
@@ -244,7 +302,8 @@ class MediaScanner(private val context: Context) {
         fallbackName: String? = null,
         fallbackSize: Long = 0L,
         folderPath: String = "external",
-        folderName: String = "External"
+        folderName: String = "External",
+        filterMusicTracks: Boolean = true
     ): SongEntity? {
         val uriString = uri.toString()
         val id = -abs(uriString.hashCode().toLong()).let { if (it == 0L) -1L else it }
@@ -315,6 +374,15 @@ class MediaScanner(private val context: Context) {
             }
         }
 
+        val isFilteredMusicTrack = filterMusicTracks && AudioContentFilter.isExcludedMusicTrack(
+            title = title,
+            artist = artist,
+            album = album,
+            genre = genre,
+            displayName = displayName,
+            folderPath = folderPath
+        )
+
         return SongEntity(
             id = id,
             title = title,
@@ -331,7 +399,9 @@ class MediaScanner(private val context: Context) {
             genre = genre,
             folderPath = folderPath,
             folderName = folderName,
-            isSafTrack = true
+            isSafTrack = true,
+            isFilteredMusic = isFilteredMusicTrack,
+            isUserApprovedNasheed = false
         )
     }
 

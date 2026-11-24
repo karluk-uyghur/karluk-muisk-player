@@ -1,5 +1,6 @@
 package com.example.feature.queue
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +25,12 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -231,8 +235,11 @@ fun HistoryScreen(
     historySongs: List<Song>,
     playlists: List<Playlist>,
     playbackState: PlaybackState,
+    initialSelectionMode: Boolean = false,
     onBack: () -> Unit,
     onClearHistory: () -> Unit,
+    onRemoveFromHistory: (Long) -> Unit = {},
+    onRemoveSongsFromHistory: (List<Long>) -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit,
     onToggleFavorite: (Long) -> Unit,
     onPlayNext: (Song) -> Unit,
@@ -242,12 +249,22 @@ fun HistoryScreen(
     onRenameSong: (Long, String) -> Unit = { _, _ -> },
     onRemoveFromLibrary: (Long) -> Unit
 ) {
+    val tokens = LocalKarlukTokens.current
     val context = LocalContext.current
     var optionSong by remember { mutableStateOf<Song?>(null) }
     var deleteTargetSong by remember { mutableStateOf<Song?>(null) }
     var playlistPickerSong by remember { mutableStateOf<Song?>(null) }
     var detailSong by remember { mutableStateOf<Song?>(null) }
     var renameTargetSong by remember { mutableStateOf<Song?>(null) }
+    var selectionMode by remember(initialSelectionMode) {
+        mutableStateOf(initialSelectionMode)
+    }
+    var selectedIds by remember { mutableStateOf(setOf<Long>()) }
+
+    BackHandler(enabled = selectionMode && !initialSelectionMode) {
+        selectionMode = false
+        selectedIds = emptySet()
+    }
 
     KarlukBackground {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -263,14 +280,93 @@ fun HistoryScreen(
                     actions = {
                         if (historySongs.isNotEmpty()) {
                             IconButton(
+                                onClick = {
+                                    if (selectionMode) {
+                                        selectionMode = false
+                                        selectedIds = emptySet()
+                                    } else {
+                                        selectionMode = true
+                                    }
+                                },
+                                modifier = Modifier.minimumInteractiveComponentSize().testTag("history_select_mode_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (selectionMode) Icons.Rounded.Close else Icons.Rounded.Checklist,
+                                    contentDescription = stringResource(R.string.history_select_to_delete),
+                                    tint = if (selectionMode) tokens.accentPrimary else tokens.textPrimary
+                                )
+                            }
+                            IconButton(
                                 onClick = onClearHistory,
                                 modifier = Modifier.minimumInteractiveComponentSize().testTag("history_clear_btn")
                             ) {
-                                Icon(Icons.Rounded.DeleteSweep, contentDescription = stringResource(R.string.history_clear), tint = Color(0xFFFF5E7E))
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteSweep,
+                                    contentDescription = stringResource(R.string.history_clear),
+                                    tint = Color(0xFFFF5E7E)
+                                )
                             }
                         }
                     }
                 )
+
+                if (historySongs.isNotEmpty() && selectionMode) {
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        highlighted = true
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    selectedIds = if (selectedIds.size == historySongs.size) {
+                                        emptySet()
+                                    } else {
+                                        historySongs.map { it.id }.toSet()
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.minimumInteractiveComponentSize().testTag("history_select_all_btn")
+                            ) {
+                                Icon(Icons.Rounded.SelectAll, contentDescription = null, modifier = Modifier.size(16.dp), tint = tokens.accentPrimary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.history_select_all), color = tokens.textPrimary)
+                            }
+
+                            Button(
+                                onClick = {
+                                    onRemoveSongsFromHistory(selectedIds.toList())
+                                    selectedIds = emptySet()
+                                },
+                                enabled = selectedIds.isNotEmpty(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFF5E7E),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("history_delete_selected_btn")
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.history_delete_selected, selectedIds.size),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (historySongs.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -281,18 +377,35 @@ fun HistoryScreen(
                         )
                     }
                 } else {
+                    val uniqueHistory = remember(historySongs) { historySongs.distinctBy { it.id } }
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(historySongs, key = { _, s -> s.id }) { idx, song ->
+                        itemsIndexed(uniqueHistory, key = { _, s -> s.id }) { idx, song ->
+                            val isSelected = selectedIds.contains(song.id)
                             SongRowItem(
                                 song = song,
                                 isCurrent = playbackState.currentSong?.id == song.id,
                                 isPlaying = playbackState.isPlaying,
-                                onClick = { onPlaySongs(historySongs, idx) },
+                                selectionMode = selectionMode,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (selectionMode) {
+                                        selectedIds = if (isSelected) selectedIds - song.id else selectedIds + song.id
+                                    } else {
+                                        onPlaySongs(uniqueHistory, idx)
+                                    }
+                                },
                                 onToggleFavorite = { onToggleFavorite(song.id) },
-                                onMoreClick = { optionSong = song }
+                                onMoreClick = {
+                                    if (selectionMode) {
+                                        onRemoveFromHistory(song.id)
+                                        selectedIds = selectedIds - song.id
+                                    } else {
+                                        optionSong = song
+                                    }
+                                }
                             )
                         }
                     }

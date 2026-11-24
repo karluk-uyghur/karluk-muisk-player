@@ -1,10 +1,15 @@
 package com.example.core.designsystem
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -22,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -53,10 +59,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.isActive
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,12 +77,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,7 +94,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.domain.model.AppLanguage
 import com.example.domain.model.Song
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun localizedArtistName(raw: String): String {
@@ -377,18 +391,22 @@ fun SpinningVinylArtwork(
     customBackgroundUri: String? = null
 ) {
     val tokens = LocalKarlukTokens.current
-    val infiniteTransition = rememberInfiniteTransition(label = "vinyl_spin")
-    val angle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "vinyl_angle"
-    )
+    val spinAnim = remember { Animatable(0f) }
 
-    val effectiveAngle = if (isPlaying && !tokens.reducedMotion) angle else 0f
+    LaunchedEffect(isPlaying) {
+        if (isPlaying) {
+            while (isActive) {
+                val startAngle = spinAnim.value % 360f
+                spinAnim.snapTo(startAngle)
+                spinAnim.animateTo(
+                    targetValue = startAngle + 360f,
+                    animationSpec = tween(durationMillis = 8500, easing = LinearEasing)
+                )
+            }
+        }
+    }
+
+    val effectiveAngle = spinAnim.value
     val hasCustomDiscBg = !customBackgroundUri.isNullOrBlank()
     var artworkFailed by remember(artworkUri) { mutableStateOf(false) }
 
@@ -415,6 +433,7 @@ fun SpinningVinylArtwork(
             Box(
                 modifier = Modifier
                     .size(size)
+                    .rotate(effectiveAngle)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -430,16 +449,18 @@ fun SpinningVinylArtwork(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Subtle glass/vinyl ring framing inside the disc
+                // Spinning highlight ring & center spindle so motion is clear
                 Box(
                     modifier = Modifier
                         .size(size * 0.88f)
-                        .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape)
                 )
                 Box(
                     modifier = Modifier
-                        .size(size * 0.56f)
-                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
+                        .size(size * 0.16f)
+                        .clip(CircleShape)
+                        .background(Color(0xFF071128).copy(alpha = 0.82f))
+                        .border(1.5.dp, Color.White.copy(alpha = 0.65f), CircleShape)
                 )
             }
         } else {
@@ -452,26 +473,35 @@ fun SpinningVinylArtwork(
                         Brush.sweepGradient(
                             colors = listOf(
                                 Color(0xFF0A142D),
-                                Color(0xFF1A3168),
+                                Color(0xFF284F9E),
                                 Color(0xFF070F26),
-                                Color(0xFF1B3A7A),
+                                Color(0xFF3364BA),
                                 Color(0xFF0A142D)
                             )
                         )
                     )
-                    .border(2.5.dp, tokens.accentPrimary.copy(alpha = 0.72f), CircleShape),
+                    .border(2.5.dp, tokens.accentPrimary.copy(alpha = 0.78f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                // Subtle vinyl grooves
+                // Concentric vinyl grooves with subtle shiny spot
                 Box(
                     modifier = Modifier
                         .size(size * 0.86f)
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
                 )
                 Box(
                     modifier = Modifier
                         .size(size * 0.72f)
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
+                )
+                // Visible marker notch on outer vinyl ring so rotation is clearly visible even without album art
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(tokens.accentPrimary.copy(alpha = 0.88f))
                 )
 
                 // Center album art or music emblem
@@ -484,7 +514,7 @@ fun SpinningVinylArtwork(
                                 colors = listOf(tokens.accentSecondary, tokens.accentViolet)
                             )
                         )
-                        .border(2.dp, Color.White.copy(alpha = 0.45f), CircleShape),
+                        .border(2.dp, Color.White.copy(alpha = 0.50f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     if (!artworkUri.isNullOrBlank() && !artworkFailed) {
@@ -951,4 +981,215 @@ fun KarlukLogoImage(
             .clip(RoundedCornerShape(size * 0.26f))
             .border(1.5.dp, tokens.accentPrimary.copy(alpha = 0.55f), RoundedCornerShape(size * 0.26f))
     )
+}
+
+@Composable
+fun LanguageFlagBadge(
+    language: AppLanguage,
+    modifier: Modifier = Modifier
+) {
+    val tokens = LocalKarlukTokens.current
+    val shape = RoundedCornerShape(5.dp)
+    if (language == AppLanguage.ARABIC) {
+        Image(
+            painter = painterResource(id = R.drawable.flag_saudi),
+            contentDescription = AppLanguage.ARABIC.nativeName,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+                .size(width = 32.dp, height = 22.dp)
+                .clip(shape)
+                .border(0.8.dp, tokens.glassBorderBright, shape)
+        )
+        return
+    }
+
+    Canvas(
+        modifier = modifier
+            .size(width = 32.dp, height = 22.dp)
+            .clip(shape)
+            .border(0.8.dp, tokens.glassBorderBright, shape)
+    ) {
+        val w = size.width
+        val h = size.height
+        when (language) {
+            AppLanguage.UYGHUR -> {
+                val skyBlue = Color(0xFF0888F3)
+                drawRect(color = skyBlue)
+                drawCrescentAndStar(
+                    w = w,
+                    h = h,
+                    bgColor = skyBlue,
+                    fgColor = Color.White
+                )
+            }
+
+            AppLanguage.TURKISH -> {
+                val red = Color(0xFFE30A17)
+                drawRect(color = red)
+                drawCrescentAndStar(
+                    w = w,
+                    h = h,
+                    bgColor = red,
+                    fgColor = Color.White
+                )
+            }
+
+            AppLanguage.ARABIC -> Unit
+
+            AppLanguage.ENGLISH -> {
+                // Crisp Union Jack
+                drawRect(color = Color(0xFF012169))
+                val diagWhite = h * 0.22f
+                val diagRed = h * 0.11f
+                drawLine(Color.White, Offset(0f, 0f), Offset(w, h), strokeWidth = diagWhite)
+                drawLine(Color.White, Offset(w, 0f), Offset(0f, h), strokeWidth = diagWhite)
+                drawLine(Color(0xFFC8102E), Offset(0f, 0f), Offset(w, h), strokeWidth = diagRed)
+                drawLine(Color(0xFFC8102E), Offset(w, 0f), Offset(0f, h), strokeWidth = diagRed)
+                // Central white cross
+                drawRect(
+                    color = Color.White,
+                    topLeft = Offset(0f, h * 0.34f),
+                    size = Size(w, h * 0.32f)
+                )
+                drawRect(
+                    color = Color.White,
+                    topLeft = Offset(w * 0.39f, 0f),
+                    size = Size(w * 0.22f, h)
+                )
+                // Central red cross
+                drawRect(
+                    color = Color(0xFFC8102E),
+                    topLeft = Offset(0f, h * 0.41f),
+                    size = Size(w, h * 0.18f)
+                )
+                drawRect(
+                    color = Color(0xFFC8102E),
+                    topLeft = Offset(w * 0.435f, 0f),
+                    size = Size(w * 0.13f, h)
+                )
+            }
+        }
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrescentAndStar(
+    w: Float,
+    h: Float,
+    bgColor: Color,
+    fgColor: Color
+) {
+    val outerCx = w * 0.39f
+    val cy = h * 0.50f
+    val outerR = h * 0.29f
+    drawCircle(
+        color = fgColor,
+        radius = outerR,
+        center = Offset(outerCx, cy)
+    )
+    drawCircle(
+        color = bgColor,
+        radius = h * 0.232f,
+        center = Offset(outerCx + h * 0.08f, cy)
+    )
+
+    val starCx = w * 0.67f
+    val starOuterR = h * 0.145f
+    val starInnerR = starOuterR * 0.39f
+    val starPath = androidx.compose.ui.graphics.Path()
+    for (i in 0 until 10) {
+        val angleRad = (-90.0 + i * 36.0) * PI / 180.0
+        val r = if (i % 2 == 0) starOuterR else starInnerR
+        val x = starCx + (r * cos(angleRad)).toFloat()
+        val y = cy + (r * sin(angleRad)).toFloat()
+        if (i == 0) starPath.moveTo(x, y) else starPath.lineTo(x, y)
+    }
+    starPath.close()
+    drawPath(path = starPath, color = fgColor)
+}
+
+@Composable
+fun KarlukSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    val tokens = LocalKarlukTokens.current
+    val pillShape = RoundedCornerShape(50)
+
+    val trackBg by animateColorAsState(
+        targetValue = when {
+            !enabled -> tokens.glassSurface.copy(alpha = 0.25f)
+            checked -> tokens.accentPrimary.copy(alpha = 0.20f)
+            tokens.isLightTheme -> Color(0xFFD5E2FA)
+            else -> Color(0xFF081430)
+        },
+        animationSpec = tween(durationMillis = 220),
+        label = "switch_track"
+    )
+    val frameBorderColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> tokens.glassBorder.copy(alpha = 0.35f)
+            checked -> tokens.accentPrimary
+            else -> tokens.textSecondary.copy(alpha = 0.65f)
+        },
+        animationSpec = tween(durationMillis = 220),
+        label = "switch_border"
+    )
+    val thumbColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> tokens.textSecondary.copy(alpha = 0.45f)
+            checked -> tokens.accentPrimary
+            else -> tokens.textSecondary
+        },
+        animationSpec = tween(durationMillis = 220),
+        label = "switch_thumb"
+    )
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 24.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "switch_offset"
+    )
+
+    // Keep visual slide orientation predictable (LTR inside frame: Off = left, On = right)
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Box(
+            modifier = modifier
+                .minimumInteractiveComponentSize()
+                .clip(pillShape)
+                .clickable(
+                    enabled = enabled,
+                    role = Role.Switch,
+                    onClick = { onCheckedChange(!checked) }
+                )
+                .padding(horizontal = 2.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 54.dp, height = 30.dp)
+                    .clip(pillShape)
+                    .background(trackBg)
+                    .border(width = 1.6.dp, color = frameBorderColor, shape = pillShape)
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = thumbOffset)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(thumbColor)
+                        .border(
+                            width = 1.4.dp,
+                            color = if (checked && enabled) Color.White.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.30f),
+                            shape = CircleShape
+                        )
+                )
+            }
+        }
+    }
 }

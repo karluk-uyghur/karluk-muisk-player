@@ -47,13 +47,17 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MusicOff
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -155,7 +159,10 @@ fun LibraryScreen(
     onDeletePlaylist: (Long) -> Unit,
     onAddToPlaylist: (Long, List<Long>) -> Unit,
     onRenameSong: (Long, String) -> Unit = { _, _ -> },
-    onRemoveFromLibrary: (Long) -> Unit
+    onRemoveFromLibrary: (Long) -> Unit,
+    onBatchRemoveFromLibrary: (List<Long>) -> Unit = { ids -> ids.forEach(onRemoveFromLibrary) },
+    filteredMusicCount: Int = 0,
+    onOpenFilteredMusic: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val tokens = LocalKarlukTokens.current
@@ -249,7 +256,9 @@ fun LibraryScreen(
                         }
                         IconButton(
                             onClick = {
-                                selectedIds.forEach { onRemoveFromLibrary(it) }
+                                if (selectedIds.isNotEmpty()) {
+                                    onBatchRemoveFromLibrary(selectedIds.toList())
+                                }
                                 selectionMode = false
                                 selectedIds = emptySet()
                             },
@@ -537,6 +546,50 @@ fun LibraryScreen(
                                 Icon(Icons.Rounded.CreateNewFolder, contentDescription = null, tint = tokens.accentPrimary)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(stringResource(R.string.files_pick_folder), color = tokens.textPrimary)
+                            }
+                        }
+                        if (filteredMusicCount > 0) {
+                            item {
+                                GlassCard(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("library_filtered_music_folder_card"),
+                                    highlighted = true,
+                                    onClick = onOpenFilteredMusic
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.MusicOff,
+                                            contentDescription = null,
+                                            tint = tokens.accentViolet,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = stringResource(R.string.filtered_music_folder_title),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = tokens.textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.filtered_music_folder_desc, filteredMusicCount),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = tokens.textSecondary
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = tokens.textSecondary
+                                        )
+                                    }
+                                }
                             }
                         }
                         items(folders, key = { it.path }) { folder ->
@@ -1315,8 +1368,35 @@ fun CollectionDetailScreen(
                 onBack = onBack,
                 actions = {
                     if (canExcludeFolder && onExcludeFolder != null) {
-                        TextButton(onClick = { onExcludeFolder(); onBack() }) {
-                            Text(stringResource(R.string.files_exclude_folder), color = Color(0xFFFF6E8A))
+                        Surface(
+                            onClick = { onExcludeFolder(); onBack() },
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xFFFF6E8A).copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Color(0xFFFF6E8A).copy(alpha = 0.45f)),
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .minimumInteractiveComponentSize()
+                                .testTag("hide_folder_btn")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.VisibilityOff,
+                                    contentDescription = stringResource(R.string.files_exclude_folder),
+                                    tint = Color(0xFFFF6E8A),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.files_exclude_folder),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFFFF6E8A),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }

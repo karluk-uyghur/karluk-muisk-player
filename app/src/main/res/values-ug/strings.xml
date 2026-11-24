@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Karluk MP3 Pro</string>
     <string name="app_subtitle">ئەڭ يۇقىرى نەشرى</string>
-    <string name="brand_tagline">ئاۋاز ھاياتنىڭ رەڭگى</string>
 
     <!-- Navigation -->
     <string name="nav_home">باش بەت</string>
@@ -14,10 +13,9 @@
     <!-- Onboarding -->
     <string name="onboarding_title">قارلۇققا خۇش كەپسىز</string>
     <string name="onboarding_perm_title">نەشىد ھۆججەتلىرىگە رۇخسەت</string>
-    <string name="onboarding_perm_desc">ئۈسكۈنىدىكى بارلىق نەشىدلەرنى ئاپتوماتىك تېپىش ئۈچۈن رۇخسەت بېرىڭ ياكى مۇندەرىجىنى بىۋاسىتە تاللاڭ.</string>
+    <string name="onboarding_perm_desc">ئۈسكۈنىڭىزدىكى بارلىق نەشىدلەرنى ئاپتوماتىك تېپىش ئۈچۈن رۇخسەت بېرىڭ ياكى مۇندەرىجىنى بىۋاسىتە تاللاڭ.</string>
     <string name="onboarding_grant_button">نەشىد رۇخسىتى بېرىش</string>
     <string name="onboarding_pick_folder">ھۆججەت مۇندەرىجىسى تاللاش</string>
-    <string name="onboarding_skip">تورسىز داۋاملاشتۇرۇش</string>
 
     <!-- Home Dashboard -->
     <string name="home_now_playing">ھازىر قويۇلۇۋاتقان</string>
@@ -37,7 +35,7 @@
     <string name="tab_all_songs">بارلىق نەشىدلەر</string>
     <string name="tab_albums">تۈركۈملەر</string>
     <string name="tab_artists">نەشىد ئىگىلىرى</string>
-    <string name="tab_folders">ھۆججەت خالتىسى</string>
+    <string name="tab_folders">ھۆججەتلەر</string>
     <string name="tab_playlists">تىزىملىكلەر</string>
     <string name="tab_recent">يېقىنقى</string>
     <string name="action_play_all">ھەممىنى قويۇش</string>
@@ -90,8 +88,8 @@
     <string name="permission_denied_title">نەشىد رۇخسىتى كېرەك</string>
     <string name="permission_denied_desc">ئۈسكۈنىنى تەكشۈرۈش ئۈچۈن رۇخسەت بېرىڭ ياكى رۇخسەتسىزلا ھۆججەت تاللاڭ.</string>
     <string name="playback_error_title">قويۇش خاتالىقى</string>
-    <string name="unknown_artist">نامەلۇم نەشىد ئىگىسى</string>
-    <string name="unknown_album">ئومۇمىي تۈركۈم</string>
+    <string name="unknown_artist">ئىگىسى نامەلۇم نەشىد</string>
+    <string name="unknown_album">تۈركۈمى نامەلۇم</string>
 
     <!-- Now Playing & Lyrics -->
     <string name="now_playing_title">قويۇلۇۋاتقان نەشىد</string>
@@ -118,7 +116,7 @@
     <string name="equalizer_title">ئاۋاز تەڭشىگۈچ</string>
     <string name="equalizer_enable">تەڭشىگۈچنى ئېچىش</string>
     <string name="equalizer_unsupported">يۇمشاق دېتال DSP تەڭشىگۈچى ئاكتىپ.</string>
-    <string name="equalizer_summary">5 بەلۋاغلىق تەڭشىگۈچ • باس • 3D • تەڭپۇڭلۇق</string>
+    <string name="equalizer_summary">5 بەلباغلىق تەڭشىگۈچ • باس • 3D • تەڭپۇڭلۇق</string>
     <string name="preset_flat">تۈز</string>
     <string name="preset_classical">كلاسسىك</string>
     <string name="preset_pop">پوپ</string>
@@ -167,7 +165,7 @@
     <!-- Settings, Theme Studio, Storage, About -->
     <string name="settings_title">تەڭشەكلەر</string>
     <string name="settings_language">تىل تاللاش</string>
-    <string name="settings_theme_studio">كۆرۈنۈش ستۇدىيىسى</string>
+    <string name="settings_theme_studio">كۆرۈنۈش ستۇدىيەسى</string>
     <string name="settings_equalizer">ئاۋاز تەڭشىگۈچ</string>
     <string name="settings_playback">قويۇش تەڭشىكى</string>
     <string name="settings_resume_playback">ئېچىلغاندا ئاخىرقى نەشىدنى ئەسلىگە كەلتۈرۈش</string>
@@ -205,6 +203,96 @@
     <string name="storage_cache_size">رەسىم كەش سىغىمى</string>
     <string name="storage_clear_cache">كەشنى تازىلاش</string>
     <string name="storage_by_format">فورمات بويىچە نەشىدلەر</string>
-    <string name="about_version">نەشرى 1.0.0 — Ultimate Edition</string>
-    <string name="about_desc">Kotlin، Jetpack Compose ۋە AndroidX Media3 ExoPlayer ئاساسىدا ياسالغان كۆپ تىللىق كەسپىي تورسىز ئاۋاز قويغۇچ.</string>
+    <string name="about_version_format">نەشرى %1$s (%2$d)</string>
+    <string name="about_desc">Kotlin، Jetpack Compose ۋە AndroidX Media3 ExoPlayer ئاساسىدا ياسالغان كۆپ تىللىق كەسپىي تورسىز نەشىد قويغۇچ.</string>
+    <string name="about_copyright_title">نەشىر ھوقۇقى ۋە ئىشلىتىش ئەسكەرتىشى</string>
+    <string name="about_copyright_notice">بۇ ئەپنىڭ بارلىق نەشىر ھوقۇقى ئەپنىڭ ياسىغۇچىسىغا تەۋە. ئەپنى خالىغانچە بۇزۇشقا، ئۆزگەرتىشكە بولمايدۇ. بۇ ئەپ شەخسىي قىزىقىش ئاساسىدا ياسالغان بولۇپ، باشقا يامان مەقسەتتە ئىشلىتىشكە قەتئىي بولمايدۇ.</string>
+
+    <!-- Text Color & File Menu Enhancements -->
+    <string name="settings_text_color">خەت رەڭگى</string>
+    <string name="text_color_auto">ئاپتوماتىك</string>
+    <string name="text_color_white">ساپ ئاق</string>
+    <string name="text_color_cyan">ئاسمان كۆك</string>
+    <string name="text_color_gold">ئالتۇن سېرىق</string>
+    <string name="text_color_emerald">زۇمرەت يېشىل</string>
+    <string name="text_color_rose">قىزغۇچ گۈل</string>
+    <string name="text_color_obsidian">قارا سىياھ</string>
+    <string name="files_imported_files">قوشۇلغان نەشىد ھۆججەتلىرى</string>
+    <string name="files_clear_added_folders">قوشۇلغان مۇندەرىجىلەرنى تازىلاش</string>
+    <string name="files_more_options">تېخىمۇ كۆپ تاللاش</string>
+    <string name="playback_speed_label">قويۇش سۈرئىتى</string>
+
+    <!-- ئەخلەت چېلىكى، قولدا رەڭ تەڭشەش، يېڭىلاش ۋە باشقا تەڭشەكلەر -->
+    <string name="trash_title">ئەخلەت چېلىكى</string>
+    <string name="trash_subtitle_count">%d دانە تۈر</string>
+    <string name="trash_empty_action">چېلەكنى تازىلاش</string>
+    <string name="trash_restore">ئەسلىگە كەلتۈرۈش</string>
+    <string name="trash_delete_forever">مەڭگۈلۈك ئۆچۈرۈش</string>
+    <string name="trash_empty_title">ئەخلەت چېلىكى بوش</string>
+    <string name="trash_empty_desc">ئۆچۈرۈلگەن نەشىدلەر ۋە مۇندەرىجىلەر بۇ يەردە ساقلىنىدۇ؛ تازىلىغاندىن كېيىن تېلېفون ۋە ئەپتىن مەڭگۈلۈك ئۆچۈرۈلىدۇ.</string>
+    <string name="trash_moved_notice">ئەخلەت چېلىكىگە يۆتكەلدى</string>
+    <string name="trash_restored_notice">ئەسلىگە كەلتۈرۈلدى</string>
+    <string name="trash_emptied_notice">ئەپتىن ۋە تېلېفوندىن مەڭگۈلۈك ئۆچۈرۈلدى</string>
+    <string name="trash_confirm_permanent">مەڭگۈلۈك ئۆچۈرەمسىز؟</string>
+    <string name="trash_confirm_permanent_desc">بۇ مەشغۇلات تاللانغان نەشىد ياكى ھۆججەتلەرنى ئەپتىن ھەم تېلېفون ساقلىغۇچىدىن مەڭگۈلۈك ئۆچۈرىدۇ.</string>
+
+    <string name="text_color_manual">رەڭنى قولدا تەڭشەش</string>
+    <string name="text_color_hue">رەڭ تۈرى</string>
+    <string name="text_color_saturation">تويۇنۇش</string>
+    <string name="text_color_brightness">يورۇقلۇق</string>
+    <string name="text_color_preview">ئۈلگە خەت: قارلۇق نەشىد قويغۇچ • Karluk</string>
+    <string name="text_color_apply">رەڭنى قوللىنىش</string>
+    <string name="text_color_reset">ئەسلىگە قايتۇرۇش</string>
+    <string name="text_color_custom_badge">خاس رەڭ</string>
+
+    <string name="storage_cache_cleared">رەسىم كەش تازىلاندى</string>
+    <string name="storage_largest_tracks">سىغىمى ئەڭ چوڭ نەشىدلەر</string>
+
+    <string name="settings_updates">ئەپ يېڭىلاش</string>
+    <string name="update_channel_subtitle">تېلېگرامما قانىلى: https://t.me/aplirim2026</string>
+    <string name="update_check_now">يېڭىلانما تەكشۈرۈش</string>
+    <string name="update_available_title">يېڭى نەشرى v%s بار</string>
+    <string name="update_available_desc">تېلېگرامما قانىلىمىزغا يېڭى نەشرى يوللاندى. قانالنى ئېچىپ چۈشۈرۈپ يېڭىلىۋېلىڭ.</string>
+    <string name="update_download_telegram">تېلېگرامما قانىلىدىن چۈشۈرۈش</string>
+    <string name="update_open_channel">يېڭىلانما قانىلىنى ئېچىش</string>
+    <string name="update_up_to_date">ھازىر ئەڭ يېڭى نەشرىنى (v%s) ئىشلىتىۋاتىسىز</string>
+    <string name="update_check_failed">يېڭىلانما تەكشۈرۈش مەغلۇپ بولدى</string>
+    <string name="recent_edit_hint">ئۆچۈرۈش ياكى يۆتكەش ئۈچۈن بېسىپ تۇرۇڭ</string>
+
+    <string name="update_dialog_title">ئەپ يېڭىلاش</string>
+    <string name="update_checking_msg">تورغا ئۇلىنىپ تېلېگرام قانىلىدىن ئەپنىڭ نەشرىنى تەكشۈرۈۋاتىدۇ...</string>
+    <string name="update_check_version">ئەپنىڭ نەشرىنى تەكشۈرۈش</string>
+    <string name="update_download_latest">ئەپنىڭ ئەڭ يېڭى نەشرىنى چۈشۈرۈش</string>
+    <string name="update_current_version_label">ھازىرقى نەشرى: v%s</string>
+    <string name="update_latest_version_label">قانالدىكى ئەڭ يېڭى نەشرى: v%s</string>
+
+    <string name="history_select_to_delete">تاللاش</string>
+    <string name="history_delete_selected">تاللانغاننى ئۆچۈرۈش (%d)</string>
+    <string name="history_clear_all">ھەممىنى تازىلاش</string>
+    <string name="history_select_all">ھەممىنى تاللاش</string>
+    <string name="history_remove_only_desc">«%s» نى يېقىندا ئاڭلىغانلاردىن چىقىرىۋېتەمسىز؟ بۇ نەشىد ئەپتىن ۋە تېلېفوندىن ئۆچۈرۈلمەيدۇ.</string>
+    <string name="history_clear_confirm_desc">يېقىندا قويۇلغانلار تىزىملىكىنى تازىلامسىز؟ نەشىدلىرىڭىز ئەپتىن ۋە تېلېفوندىن ئۆچۈرۈلمەيدۇ.</string>
+    <string name="history_removed_notice">قويۇش تارىخىدىن ئۆچۈرۈلدى</string>
+    <string name="music_filter_skipped_notice">%d دانە ھۆججەت «مۇزىكىلار» مۇندەرىجىسىگە ئايرىلدى</string>
+
+    <string name="settings_share_app">مەزكۇر ئەپنى ھەمبەھىرلەش</string>
+    <string name="settings_share_app_desc">كۆك چىش، تېلېگرامما ۋە باشقا تاراتقۇلار ئارقىلىق ئەۋەتىش</string>
+    <string name="share_app_chooser_title">ئەپنى ھەمبەھىرلەش</string>
+    <string name="share_app_message">Karluk MP3 Pro — نەشىد قويغۇچ ئەپى: https://t.me/aplirim2026</string>
+
+    <string name="filtered_music_folder_title">مۇزىكىلار</string>
+    <string name="filtered_music_folder_desc">دىجى ياكى چالغۇ دەپ بايقالغان ھۆججەتلەر • %d دانە</string>
+    <string name="filtered_music_banner_desc">دىجى ياكى چالغۇ ئاۋازى دەپ بايقالغان ھۆججەتلەر ئاپتوماتىك بۇ مۇندەرىجىگە ئايرىلدى. ئەگەر ئىچىدە نەشىد بولسا ئاڭلاپ تەكشۈرۈپ «نەشىدكە يۆتكەش» نى بېسىپ، يۆتكەش ئىجازىتى بىلەن نورمال نەشىد تىزىملىكىگە يۆتكىيەلەيسىز.</string>
+    <string name="filtered_music_empty_title">«مۇزىكىلار» مۇندەرىجىسى بوش</string>
+    <string name="filtered_music_empty_desc">ھازىرچە دىجى ياكى چالغۇ دەپ ئايرىلغان ھۆججەت يوق.</string>
+    <string name="filtered_music_move_action">نەشىدكە يۆتكەش</string>
+    <string name="filtered_music_move_selected">تاللانغاننى يۆتكەش (%d)</string>
+    <string name="filtered_music_move_permission_title">نەشىد تىزىملىكىگە يۆتكەش ئىجازىتى</string>
+    <string name="filtered_music_move_permission_desc">«%1$s» نىڭ دىجى ياكى چالغۇ ئەمەسلىكىنى جەزملەشتۈرۈپ، نورمال نەشىد تىزىملىكىگە يۆتكەشكە ئىجازەت بېرەمسىز؟</string>
+    <string name="filtered_music_move_batch_permission_desc">تاللانغان %1$d دانە ھۆججەتنى نورمال نەشىد تىزىملىكىگە يۆتكەشكە ئىجازەت بېرەمسىز؟</string>
+    <string name="filtered_music_move_confirm">ئىجازەت بېرىش ۋە يۆتكەش</string>
+    <string name="filtered_music_moved_notice">نورمال نەشىد تىزىملىكىگە يۆتكەلدى</string>
+
+    <string name="about_sharia_notice_title">شەرىئەت ۋە مەسئۇلىيەت ئەسكەرتىشى</string>
+    <string name="about_sharia_notice_body">بۇ ئەپ ناخشا، مۇزىكا ۋە شەرىئەتكە خىلاپ چەكلەنگەن نەرسىلەرنى ئاڭلاش ئۈچۈن ياسالمىغان بولۇپ، مەخسۇس مۇزىكا، دىجى ۋە چالغۇلارنى چەكلەش ئىقتىدارى سەپلەنگەن. ھەر بىر مۇسۇلمان ئاللاھنى ئۆزىگە كۆزەتچى قىلىپ، ئەپنى پەقەت نەشىد ۋە پايدىلىق ئاۋازلار ئۈچۈن ئىشلىتىشى كېرەك.</string>
 </resources>

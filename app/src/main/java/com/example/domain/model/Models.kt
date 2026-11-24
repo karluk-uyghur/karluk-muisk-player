@@ -23,7 +23,9 @@ data class Song(
     val isFavorite: Boolean = false,
     val playCount: Int = 0,
     val lastPlayedAt: Long = 0L,
-    val customBackgroundUri: String? = null
+    val customBackgroundUri: String? = null,
+    val isFilteredMusic: Boolean = false,
+    val isUserApprovedNasheed: Boolean = false
 )
 
 data class Album(
@@ -80,7 +82,12 @@ enum class PlaybackStatus {
 enum class RepeatModeOption {
     OFF,
     ALL,
-    ONE
+    ONE;
+
+    companion object {
+        fun fromName(name: String): RepeatModeOption =
+            entries.firstOrNull { it.name == name } ?: OFF
+    }
 }
 
 data class PlaybackState(
@@ -173,11 +180,28 @@ enum class AccentOption(val id: String) {
     }
 }
 
+enum class TextColorOption(val id: String) {
+    AUTO("auto"),
+    PURE_WHITE("pure_white"),
+    SKY_CYAN("sky_cyan"),
+    GOLD_AMBER("gold_amber"),
+    EMERALD_MINT("emerald_mint"),
+    ROSE_CORAL("rose_coral"),
+    OBSIDIAN_BLACK("obsidian_black");
+
+    companion object {
+        fun fromId(id: String): TextColorOption =
+            entries.firstOrNull { it.id == id } ?: AUTO
+    }
+}
+
 data class UserSettings(
     val onboardingCompleted: Boolean = false,
     val language: AppLanguage = AppLanguage.UYGHUR,
     val themeAtmosphere: ThemeAtmosphere = ThemeAtmosphere.DEEP_NAVY,
     val accentOption: AccentOption = AccentOption.CYAN,
+    val textColorOption: TextColorOption = TextColorOption.AUTO,
+    val customTextColorArgb: Long = 0L,
     val glassOpacity: Float = 0.14f,
     val reducedMotion: Boolean = false,
     val lowPowerMode: Boolean = false,
@@ -186,7 +210,17 @@ data class UserSettings(
     val autoScanOnStartup: Boolean = true,
     val lastSongId: Long = -1L,
     val lastPositionMs: Long = 0L,
-    val customBackgroundUri: String? = null
+    val customBackgroundUri: String? = null,
+    val shuffleEnabled: Boolean = false,
+    val repeatMode: RepeatModeOption = RepeatModeOption.OFF
+)
+
+data class AppUpdateInfo(
+    val latestVersion: String,
+    val currentVersion: String,
+    val releaseNotes: String,
+    val downloadUrl: String,
+    val isUpdateAvailable: Boolean
 )
 
 enum class SortOption {

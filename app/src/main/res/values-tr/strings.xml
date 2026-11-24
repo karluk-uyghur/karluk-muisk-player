@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Karluk MP3 Pro</string>
     <string name="app_subtitle">Ultimate Sürüm</string>
-    <string name="brand_tagline">Ses, Hayatın Rengidir</string>
 
     <!-- Navigation -->
     <string name="nav_home">Ana Sayfa</string>
@@ -17,7 +16,6 @@
     <string name="onboarding_perm_desc">Cihazınızdaki neşidleri otomatik bulmak için ses izni verin veya SAF ile dizinleri güvenle seçin.</string>
     <string name="onboarding_grant_button">Neşid Erişimine İzin Ver</string>
     <string name="onboarding_pick_folder">Dizin Ekle (SAF)</string>
-    <string name="onboarding_skip">Çevrimdışı Devam Et</string>
 
     <!-- Home Dashboard -->
     <string name="home_now_playing">Şimdi Oynatılıyor</string>
@@ -205,6 +203,96 @@
     <string name="storage_cache_size">Önbellek Boyutu</string>
     <string name="storage_clear_cache">Önbelleği Temizle</string>
     <string name="storage_by_format">Biçime Göre Neşidler</string>
-    <string name="about_version">Sürüm 1.0.0 — Ultimate Sürüm</string>
-    <string name="about_desc">Kotlin, Jetpack Compose ve AndroidX Media3 ExoPlayer ile geliştirilmiş çok dilli, çevrimdışı profesyonel ses oynatıcı.</string>
+    <string name="about_version_format">Sürüm %1$s (%2$d)</string>
+    <string name="about_desc">Kotlin, Jetpack Compose ve AndroidX Media3 ExoPlayer ile geliştirilmiş çok dilli, çevrimdışı profesyonel neşid oynatıcı.</string>
+    <string name="about_copyright_title">Telif Hakkı ve Kullanım Bildirimi</string>
+    <string name="about_copyright_notice">Bu uygulamanın tüm telif hakları geliştiricisine aittir; uygulamanın izinsiz bozulması veya değiştirilmesi yasaktır. Bu uygulama tamamen kişisel ilgiyle geliştirilmiş olup hiçbir kötü niyetli amaçla kullanılamaz.</string>
+
+    <!-- Text Color & File Menu Enhancements -->
+    <string name="settings_text_color">Metin Rengi</string>
+    <string name="text_color_auto">Otomatik</string>
+    <string name="text_color_white">Saf Beyaz</string>
+    <string name="text_color_cyan">Gök Mavisi</string>
+    <string name="text_color_gold">Altın Sarısı</string>
+    <string name="text_color_emerald">Zümrüt Yeşili</string>
+    <string name="text_color_rose">Gül Pembesi</string>
+    <string name="text_color_obsidian">Koyu Mürekkep</string>
+    <string name="files_imported_files">Eklenen Neşid Dosyaları</string>
+    <string name="files_clear_added_folders">Eklenen Dizinleri Temizle</string>
+    <string name="files_more_options">Diğer Seçenekler</string>
+    <string name="playback_speed_label">Oynatma Hızı</string>
+
+    <!-- Çöp Kutusu, Manuel Metin Rengi ve Güncellemeler -->
+    <string name="trash_title">Çöp Kutusu</string>
+    <string name="trash_subtitle_count">%d öğe</string>
+    <string name="trash_empty_action">Kutuyu Boşalt</string>
+    <string name="trash_restore">Geri Yükle</string>
+    <string name="trash_delete_forever">Kalıcı Olarak Sil</string>
+    <string name="trash_empty_title">Çöp Kutusu Boş</string>
+    <string name="trash_empty_desc">Silinen neşidler ve dizinler cihazdan kalıcı olarak silinmeden önce burada saklanır.</string>
+    <string name="trash_moved_notice">Çöp kutusuna taşındı</string>
+    <string name="trash_restored_notice">Kitaplığa geri yüklendi</string>
+    <string name="trash_emptied_notice">Uygulamadan ve telefondan kalıcı olarak silindi</string>
+    <string name="trash_confirm_permanent">Kalıcı olarak silinsin mi?</string>
+    <string name="trash_confirm_permanent_desc">Seçilen öğeler hem uygulamadan hem de telefon depolamasından kalıcı olarak silinecektir.</string>
+
+    <string name="text_color_manual">Manuel Renk Seçici</string>
+    <string name="text_color_hue">Renk Tonu</string>
+    <string name="text_color_saturation">Doygunluk</string>
+    <string name="text_color_brightness">Parlaklık</string>
+    <string name="text_color_preview">Örnek Metin • Karluk Neşid</string>
+    <string name="text_color_apply">Rengi Uygula</string>
+    <string name="text_color_reset">Varsayılana Sıfırla</string>
+    <string name="text_color_custom_badge">Özel</string>
+
+    <string name="storage_cache_cleared">Kapak önbelleği temizlendi</string>
+    <string name="storage_largest_tracks">En Büyük Neşidler</string>
+
+    <string name="settings_updates">Uygulama Güncellemeleri</string>
+    <string name="update_channel_subtitle">Telegram Kanalı: https://t.me/aplirim2026</string>
+    <string name="update_check_now">Güncellemeleri Denetle</string>
+    <string name="update_available_title">Yeni Sürüm v%s Mevcut</string>
+    <string name="update_available_desc">Telegram kanalımızda daha yeni bir sürüm yayınlandı. İndirmek için kanalı açın.</string>
+    <string name="update_download_telegram">Telegram’dan İndir</string>
+    <string name="update_open_channel">Güncelleme Kanalını Aç</string>
+    <string name="update_up_to_date">En güncel sürümü (v%s) kullanıyorsunuz</string>
+    <string name="update_check_failed">Şu anda güncellemeler denetlenemedi</string>
+    <string name="recent_edit_hint">Silmek veya sıralamak için basılı tutun</string>
+
+    <string name="update_dialog_title">Uygulama Güncellemesi</string>
+    <string name="update_checking_msg">En son sürüm için Telegram kanalına bağlanılıyor...</string>
+    <string name="update_check_version">Uygulama Sürümünü Denetle</string>
+    <string name="update_download_latest">En Yeni Sürümü İndir</string>
+    <string name="update_current_version_label">Yüklü Sürüm: v%s</string>
+    <string name="update_latest_version_label">Kanaldaki Son Sürüm: v%s</string>
+
+    <string name="history_select_to_delete">Seç</string>
+    <string name="history_delete_selected">Seçilenleri Sil (%d)</string>
+    <string name="history_clear_all">Tümünü Temizle</string>
+    <string name="history_select_all">Tümünü Seç</string>
+    <string name="history_remove_only_desc">\"%s\" son dinlenenlerden kaldırılsın mı? Neşid uygulamada ve telefonda kalacaktır.</string>
+    <string name="history_clear_confirm_desc">Son dinlenenler listesi temizlensin mi? Neşidleriniz uygulamada ve telefonunuzda kalacaktır.</string>
+    <string name="history_removed_notice">Geçmişten kaldırıldı</string>
+    <string name="music_filter_skipped_notice">%d adet DJ veya enstrümantal dosya ayrılmış müzik klasörüne eklendi</string>
+
+    <string name="settings_share_app">Bu Uygulamayı Paylaş</string>
+    <string name="settings_share_app_desc">Bluetooth, Telegram ve diğer uygulamalarla paylaş</string>
+    <string name="share_app_chooser_title">Karluk MP3 Pro Paylaş</string>
+    <string name="share_app_message">Karluk MP3 Pro — Neşid Oynatıcı: https://t.me/aplirim2026</string>
+
+    <string name="filtered_music_folder_title">Ayrılan Müzikler</string>
+    <string name="filtered_music_folder_desc">Algılanan DJ / çalgılı dosyalar • %d</string>
+    <string name="filtered_music_banner_desc">DJ veya enstrümantal olarak algılanan dosyalar otomatik olarak buraya ayrılır. Dinleyip kontrol edebilir, neşid olanları taşıma izniyle normal neşid listesine aktarabilirsiniz.</string>
+    <string name="filtered_music_empty_title">Ayrılmış Dosya Yok</string>
+    <string name="filtered_music_empty_desc">Henüz DJ veya çalgılı olarak ayrılan bir dosya yok.</string>
+    <string name="filtered_music_move_action">Neşidlere Taşı</string>
+    <string name="filtered_music_move_selected">Seçilenleri Taşı (%d)</string>
+    <string name="filtered_music_move_permission_title">Neşid Listesine Taşıma İzni</string>
+    <string name="filtered_music_move_permission_desc">\"%1$s\" dosyasının DJ veya çalgılı olmadığını onaylayıp normal neşid listesine taşınmasına izin veriyor musunuz?</string>
+    <string name="filtered_music_move_batch_permission_desc">Seçilen %1$d dosyanın normal neşid listesine taşınmasına izin veriyor musunuz?</string>
+    <string name="filtered_music_move_confirm">İzin Ver ve Taşı</string>
+    <string name="filtered_music_moved_notice">Normal neşid listesine taşındı</string>
+
+    <string name="about_sharia_notice_title">Kullanım ve Dinî Sorumluluk Uyarısı</string>
+    <string name="about_sharia_notice_body">Bu uygulama şarkı, müzik veya şeriata aykırı haram şeyleri dinlemek için yapılmamıştır; müzik, DJ ve çalgıları otomatik engelleyen özel bir özelliğe sahiptir. Her Müslüman Allah’ın her an gözetleyici olduğunu bilerek hareket etmelidir.</string>
 </resources>

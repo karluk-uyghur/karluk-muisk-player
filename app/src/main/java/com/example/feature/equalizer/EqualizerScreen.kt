@@ -26,8 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -48,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.KarlukBackground
+import com.example.core.designsystem.KarlukSwitch
 import com.example.core.designsystem.KarlukTopBar
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.core.designsystem.SpectrumVisualizerCanvas
@@ -116,11 +115,10 @@ fun EqualizerScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         color = tokens.textPrimary
                                     )
-                                    Switch(
+                                    KarlukSwitch(
                                         checked = effectsState.isEqualizerEnabled,
                                         onCheckedChange = onToggleEqualizer,
                                         enabled = effectsState.isEqualizerSupported,
-                                        colors = SwitchDefaults.colors(checkedThumbColor = tokens.accentPrimary),
                                         modifier = Modifier.testTag("eq_master_switch")
                                     )
                                 }
@@ -351,11 +349,10 @@ private fun EffectSliderRow(
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
-            Switch(
+            KarlukSwitch(
                 checked = enabled && supported,
                 onCheckedChange = onToggle,
-                enabled = supported,
-                colors = SwitchDefaults.colors(checkedThumbColor = tokens.accentPrimary)
+                enabled = supported
             )
         }
         if (supported) {

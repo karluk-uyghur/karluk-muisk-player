@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.example.R
 import com.example.domain.model.AccentOption
 import com.example.domain.model.AppLanguage
+import com.example.domain.model.TextColorOption
 import com.example.domain.model.ThemeAtmosphere
 import com.example.domain.model.UserSettings
 
@@ -73,6 +74,32 @@ val LocalKarlukTokens = staticCompositionLocalOf {
     )
 }
 
+fun resolveTextColorPair(
+    option: TextColorOption,
+    isLight: Boolean,
+    customTextColorArgb: Long = 0L
+): Pair<Color, Color> {
+    if (customTextColorArgb != 0L) {
+        val customPrimary = Color(customTextColorArgb)
+        val customSecondary = customPrimary.copy(alpha = 0.78f)
+        return customPrimary to customSecondary
+    }
+    val defaultPair = if (isLight) {
+        Color(0xFF0A1938) to Color(0xFF3E5682)
+    } else {
+        Color(0xFFF4F8FF) to Color(0xFFA9BFE6)
+    }
+    return when (option) {
+        TextColorOption.AUTO -> defaultPair
+        TextColorOption.PURE_WHITE -> Color(0xFFFFFFFF) to Color(0xFFD6E4FF)
+        TextColorOption.SKY_CYAN -> Color(0xFF56E0FF) to Color(0xFF9BEFFF)
+        TextColorOption.GOLD_AMBER -> Color(0xFFFFD54F) to Color(0xFFFFE58F)
+        TextColorOption.EMERALD_MINT -> Color(0xFF54F0B4) to Color(0xFF9FF6D4)
+        TextColorOption.ROSE_CORAL -> Color(0xFFFF8FAB) to Color(0xFFFFBCCB)
+        TextColorOption.OBSIDIAN_BLACK -> Color(0xFF0A152E) to Color(0xFF283A5E)
+    }
+}
+
 @Composable
 fun KarlukTheme(
     settings: UserSettings,
@@ -101,6 +128,12 @@ fun KarlukTheme(
         ThemeAtmosphere.SILVER_FROST -> Triple(Color(0xFFEEF4FF), Color(0xFFDCE8FC), Color(0xFFCADBFA))
     }
 
+    val (textPrimary, textSecondary) = resolveTextColorPair(
+        option = settings.textColorOption,
+        isLight = isLight,
+        customTextColorArgb = settings.customTextColorArgb
+    )
+
     val opacity = settings.glassOpacity.coerceIn(0.06f, 0.32f)
     val tokens = if (isLight) {
         KarlukDesignTokens(
@@ -115,8 +148,8 @@ fun KarlukTheme(
             glassSurfaceElevated = Color.White.copy(alpha = (opacity + 0.65f).coerceAtMost(0.92f)),
             glassBorder = Color(0xFF1E448A).copy(alpha = 0.16f),
             glassBorderBright = accentColor.copy(alpha = 0.65f),
-            textPrimary = Color(0xFF0A1938),
-            textSecondary = Color(0xFF3E5682),
+            textPrimary = textPrimary,
+            textSecondary = textSecondary,
             isLightTheme = true,
             glassOpacity = opacity,
             reducedMotion = settings.reducedMotion,
@@ -136,8 +169,8 @@ fun KarlukTheme(
             glassSurfaceElevated = Color(0xFF1A3880).copy(alpha = opacity + 0.28f),
             glassBorder = Color(0xFFD8E6FF).copy(alpha = 0.18f),
             glassBorderBright = accentColor.copy(alpha = 0.60f),
-            textPrimary = Color(0xFFF4F8FF),
-            textSecondary = Color(0xFFA9BFE6),
+            textPrimary = textPrimary,
+            textSecondary = textSecondary,
             isLightTheme = false,
             glassOpacity = opacity,
             reducedMotion = settings.reducedMotion,

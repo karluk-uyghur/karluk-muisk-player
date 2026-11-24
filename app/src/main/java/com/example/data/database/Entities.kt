@@ -28,7 +28,9 @@ data class SongEntity(
     val genre: String?,
     val folderPath: String,
     val folderName: String,
-    val isSafTrack: Boolean
+    val isSafTrack: Boolean,
+    val isFilteredMusic: Boolean = false,
+    val isUserApprovedNasheed: Boolean = false
 )
 
 @Entity(tableName = "playlists")
@@ -123,4 +125,21 @@ data class SongCustomTitleEntity(
     @PrimaryKey val songId: Long,
     val customTitle: String,
     val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "trash_items")
+data class TrashItemEntity(
+    @PrimaryKey(autoGenerate = true) val trashId: Long = 0,
+    val itemType: String, // "SONG" or "FOLDER"
+    val refId: Long = -1L,
+    val title: String,
+    val subtitle: String,
+    val uri: String,
+    val folderPath: String,
+    val folderName: String = "",
+    val isSafTrack: Boolean = false,
+    val formatLabel: String = "",
+    val fileSize: Long = 0L,
+    val duration: Long = 0L,
+    val trashedAt: Long = System.currentTimeMillis()
 )

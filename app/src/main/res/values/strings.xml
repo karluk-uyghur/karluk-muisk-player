@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Karluk MP3 Pro</string>
     <string name="app_subtitle">Ultimate Edition</string>
-    <string name="brand_tagline">Sound, the Color of Life</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
@@ -17,7 +16,6 @@
     <string name="onboarding_perm_desc">Grant audio access to automatically discover Nasheeds on your device, or pick specific directories safely via Storage Access Framework.</string>
     <string name="onboarding_grant_button">Allow Nasheed Access</string>
     <string name="onboarding_pick_folder">Add Directory (SAF)</string>
-    <string name="onboarding_skip">Continue Offline</string>
 
     <!-- Home Dashboard -->
     <string name="home_now_playing">Now Playing</string>
@@ -205,6 +203,96 @@
     <string name="storage_cache_size">Thumbnail Cache</string>
     <string name="storage_clear_cache">Clear Cache</string>
     <string name="storage_by_format">Nasheeds by Format</string>
-    <string name="about_version">Version 1.0.0 — Ultimate Edition</string>
-    <string name="about_desc">Professional offline-first multilingual audio player crafted with Kotlin, Jetpack Compose, and AndroidX Media3 ExoPlayer.</string>
+    <string name="about_version_format">Version %1$s (%2$d)</string>
+    <string name="about_desc">Professional offline-first multilingual Nasheed player crafted with Kotlin, Jetpack Compose, and AndroidX Media3 ExoPlayer.</string>
+    <string name="about_copyright_title">Copyright &amp; Usage Notice</string>
+    <string name="about_copyright_notice">All copyright of this application belongs exclusively to its developer. Tampering with, breaking, or modifying the app without permission is prohibited. This app was created out of personal passion and must never be used for any malicious or harmful purposes.</string>
+
+    <!-- Text Color & File Menu Enhancements -->
+    <string name="settings_text_color">Text Color</string>
+    <string name="text_color_auto">Auto (Theme)</string>
+    <string name="text_color_white">Pure White</string>
+    <string name="text_color_cyan">Sky Cyan</string>
+    <string name="text_color_gold">Golden Amber</string>
+    <string name="text_color_emerald">Emerald Mint</string>
+    <string name="text_color_rose">Rose Coral</string>
+    <string name="text_color_obsidian">Dark Ink</string>
+    <string name="files_imported_files">Added Nasheed Files</string>
+    <string name="files_clear_added_folders">Remove Added Directories</string>
+    <string name="files_more_options">More Options</string>
+    <string name="playback_speed_label">Playback Speed</string>
+
+    <!-- Recycle Bin (Trash), Manual Color, Updates & Interactions -->
+    <string name="trash_title">Recycle Bin</string>
+    <string name="trash_subtitle_count">%d items</string>
+    <string name="trash_empty_action">Empty Bin</string>
+    <string name="trash_restore">Restore</string>
+    <string name="trash_delete_forever">Delete Forever</string>
+    <string name="trash_empty_title">Recycle Bin is Empty</string>
+    <string name="trash_empty_desc">Deleted Nasheeds and directories appear here before permanent removal from your phone.</string>
+    <string name="trash_moved_notice">Moved to Recycle Bin</string>
+    <string name="trash_restored_notice">Restored to Library</string>
+    <string name="trash_emptied_notice">Permanently deleted from app and device</string>
+    <string name="trash_confirm_permanent">Delete Permanently?</string>
+    <string name="trash_confirm_permanent_desc">This will permanently remove the selected items from both the app and your phone storage.</string>
+
+    <string name="text_color_manual">Manual Color Picker</string>
+    <string name="text_color_hue">Hue</string>
+    <string name="text_color_saturation">Saturation</string>
+    <string name="text_color_brightness">Brightness</string>
+    <string name="text_color_preview">Sample Uyghur &amp; Nasheed Preview • قارلۇق نەشىد</string>
+    <string name="text_color_apply">Apply Color</string>
+    <string name="text_color_reset">Reset Auto</string>
+    <string name="text_color_custom_badge">Custom</string>
+
+    <string name="storage_cache_cleared">Artwork cache cleared</string>
+    <string name="storage_largest_tracks">Largest Nasheeds</string>
+
+    <string name="settings_updates">App Updates</string>
+    <string name="update_channel_subtitle">Telegram Channel: https://t.me/aplirim2026</string>
+    <string name="update_check_now">Check for Updates</string>
+    <string name="update_available_title">New Version v%s Available</string>
+    <string name="update_available_desc">A newer release is available on our Telegram channel. Open the channel to download and install.</string>
+    <string name="update_download_telegram">Download on Telegram</string>
+    <string name="update_open_channel">Open Updates Channel</string>
+    <string name="update_up_to_date">You are using the latest version (v%s)</string>
+    <string name="update_check_failed">Unable to check updates right now</string>
+    <string name="recent_edit_hint">Long-press to delete or reorder</string>
+
+    <string name="update_dialog_title">App Update</string>
+    <string name="update_checking_msg">Connecting to Telegram channel to check the latest version...</string>
+    <string name="update_check_version">Check App Version</string>
+    <string name="update_download_latest">Download Latest Version</string>
+    <string name="update_current_version_label">Installed Version: v%s</string>
+    <string name="update_latest_version_label">Latest on Channel: v%s</string>
+
+    <string name="history_select_to_delete">Select</string>
+    <string name="history_delete_selected">Delete Selected (%d)</string>
+    <string name="history_clear_all">Clear All</string>
+    <string name="history_select_all">Select All</string>
+    <string name="history_remove_only_desc">Remove \"%s\" from Recently Played? The Nasheed will remain in your library and phone.</string>
+    <string name="history_clear_confirm_desc">Clear all Recently Played history? Your Nasheeds will remain safely in your library and phone.</string>
+    <string name="history_removed_notice">Removed from history</string>
+    <string name="music_filter_skipped_notice">%d non-Nasheed track(s) separated into Filtered Music</string>
+
+    <string name="settings_share_app">Share This App</string>
+    <string name="settings_share_app_desc">Share APK via Bluetooth, Telegram &amp; social apps</string>
+    <string name="share_app_chooser_title">Share Karluk MP3 Pro</string>
+    <string name="share_app_message">Karluk MP3 Pro — Offline Nasheed Player: https://t.me/aplirim2026</string>
+
+    <string name="filtered_music_folder_title">Filtered Music</string>
+    <string name="filtered_music_folder_desc">Detected DJ / instrumental tracks • %d</string>
+    <string name="filtered_music_banner_desc">Tracks detected as DJ or instrumental music are placed here automatically. Listen to verify and grant move permission to restore any Nasheed into your normal Nasheed library.</string>
+    <string name="filtered_music_empty_title">No Filtered Tracks</string>
+    <string name="filtered_music_empty_desc">No DJ or instrumental tracks have been separated.</string>
+    <string name="filtered_music_move_action">Move to Nasheeds</string>
+    <string name="filtered_music_move_selected">Move Selected (%d)</string>
+    <string name="filtered_music_move_permission_title">Move Permission</string>
+    <string name="filtered_music_move_permission_desc">Confirm \"%1$s\" is a Nasheed (not DJ or instrumental) and allow moving it to the normal Nasheed library?</string>
+    <string name="filtered_music_move_batch_permission_desc">Allow moving %1$d selected file(s) into the normal Nasheed library?</string>
+    <string name="filtered_music_move_confirm">Allow &amp; Move</string>
+    <string name="filtered_music_moved_notice">Moved to normal Nasheed library</string>
+
+    <string name="about_sharia_notice_title">Usage &amp; Religious Responsibility</string>
+    <string name="about_sharia_notice_body">This app is strictly not intended for listening to songs, music, or anything prohibited under Islamic Sharia, and includes a dedicated built-in feature to block music, DJ tracks, and instruments. Every Muslim must remember that Allah is ever-watchful over them.</string>
 </resources>

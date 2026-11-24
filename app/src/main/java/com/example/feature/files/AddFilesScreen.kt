@@ -20,15 +20,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.CreateNewFolder
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.FolderOff
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MusicOff
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +42,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.common.FormatUtils
+import com.example.core.designsystem.DeleteConfirmDialog
 import com.example.core.designsystem.FormatBadge
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.KarlukTopBar
@@ -53,6 +64,7 @@ import com.example.core.designsystem.LocalKarlukTokens
 import com.example.data.database.ExcludedFolderEntity
 import com.example.data.database.SafFolderEntity
 import com.example.domain.model.FolderItem
+import com.example.domain.model.Song
 import com.example.domain.model.StorageStats
 
 @Composable
@@ -60,6 +72,7 @@ fun AddFilesScreen(
     safFolders: List<SafFolderEntity>,
     excludedFolders: List<ExcludedFolderEntity>,
     deviceFolders: List<FolderItem>,
+    importedSongs: List<Song> = emptyList(),
     storageStats: StorageStats,
     isScanning: Boolean,
     hasAudioPermission: Boolean,
@@ -68,11 +81,20 @@ fun AddFilesScreen(
     onImportAudioFiles: (List<Uri>) -> Unit,
     onAddSafFolder: (Uri) -> Unit,
     onRemoveSafFolder: (String) -> Unit,
+    onRemoveAllSafFolders: () -> Unit = {},
+    onExcludeFolder: (String, String) -> Unit = { _, _ -> },
     onRestoreExcludedFolder: (String) -> Unit,
+    onPlaySong: (List<Song>, Int) -> Unit = { _, _ -> },
+    onRemoveImportedSong: (Long) -> Unit = {},
+    onRemoveAllImportedSongs: (List<Long>) -> Unit = {},
     onOpenFolderDetail: (FolderItem) -> Unit,
-    onOpenStorageInfo: () -> Unit
+    onOpenStorageInfo: () -> Unit,
+    filteredMusicCount: Int = 0,
+    onOpenFilteredMusic: () -> Unit = {}
 ) {
     val tokens = LocalKarlukTokens.current
+    var topMenuOpen by remember { mutableStateOf(false) }
+    var deleteSongTarget by remember { mutableStateOf<Song?>(null) }
 
     val audioFilesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -95,11 +117,68 @@ fun AddFilesScreen(
             KarlukTopBar(
                 title = stringResource(R.string.files_title),
                 actions = {
-                    IconButton(
-                        onClick = onOpenStorageInfo,
-                        modifier = Modifier.minimumInteractiveComponentSize().testTag("files_storage_btn")
-                    ) {
-                        Icon(Icons.Rounded.Storage, contentDescription = stringResource(R.string.storage_title), tint = tokens.accentPrimary)
+                    if (safFolders.isNotEmpty() || importedSongs.isNotEmpty()) {
+                        Box {
+                            IconButton(
+                                onClick = { topMenuOpen = true },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .testTag("files_top_more_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreVert,
+                                    contentDescription = stringResource(R.string.files_more_options),
+                                    tint = tokens.textPrimary
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = topMenuOpen,
+                                onDismissRequest = { topMenuOpen = false }
+                            ) {
+                                if (safFolders.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = stringResource(R.string.files_clear_added_folders),
+                                                color = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        onClick = {
+                                            topMenuOpen = false
+                                            onRemoveAllSafFolders()
+                                        }
+                                    )
+                                }
+                                if (importedSongs.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = stringResource(R.string.action_delete),
+                                                color = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF5E7E)
+                                            )
+                                        },
+                                        onClick = {
+                                            topMenuOpen = false
+                                            onRemoveAllImportedSongs(importedSongs.map { it.id })
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             )
@@ -180,37 +259,146 @@ fun AddFilesScreen(
                     )
                 }
 
-                // Storage Quick Summary
-                item {
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        onClick = onOpenStorageInfo
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                // Auto-created "Filtered Music" (مۇزىكىلار) Folder Card
+                if (filteredMusicCount > 0) {
+                    item {
+                        GlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .minimumInteractiveComponentSize()
+                                .testTag("files_filtered_music_folder_card"),
+                            shape = RoundedCornerShape(18.dp),
+                            highlighted = true,
+                            onClick = onOpenFilteredMusic
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Storage, contentDescription = null, tint = tokens.accentPrimary)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = stringResource(R.string.storage_title),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = tokens.textPrimary
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MusicOff,
+                                    contentDescription = null,
+                                    tint = tokens.accentViolet,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.filtered_music_folder_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = tokens.textPrimary
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.filtered_music_folder_desc, filteredMusicCount),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = tokens.textSecondary
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = tokens.textSecondary
                                 )
                             }
-                            Text(
-                                text = "${stringResource(R.string.home_tracks_count, storageStats.totalTracks)} • ${FormatUtils.formatFileSize(storageStats.totalSizeBytes)}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = tokens.accentPrimary
-                            )
                         }
                     }
                 }
 
-                // Added SAF Folders
+                // Added Individual Nasheed Files with 3-dots Delete menu
+                if (importedSongs.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.files_imported_files),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = tokens.textPrimary,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                    items(importedSongs, key = { "imp_${it.id}" }) { song ->
+                        var menuOpen by remember { mutableStateOf(false) }
+                        val idx = importedSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            onClick = { onPlaySong(importedSongs, idx) }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Rounded.AudioFile, contentDescription = null, tint = tokens.accentPrimary)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = song.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = tokens.textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        FormatBadge(song.formatLabel)
+                                        Text(
+                                            text = FormatUtils.formatDuration(song.duration),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = tokens.textSecondary
+                                        )
+                                    }
+                                }
+                                Box {
+                                    IconButton(
+                                        onClick = { menuOpen = true },
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("imported_file_more_${song.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.MoreVert,
+                                            contentDescription = stringResource(R.string.files_more_options),
+                                            tint = tokens.textSecondary
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuOpen,
+                                        onDismissRequest = { menuOpen = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.action_play)) },
+                                            leadingIcon = { Icon(Icons.Rounded.PlayArrow, contentDescription = null, tint = tokens.accentPrimary) },
+                                            onClick = {
+                                                menuOpen = false
+                                                onPlaySong(importedSongs, idx)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = stringResource(R.string.action_delete),
+                                                    color = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Rounded.DeleteOutline,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            onClick = {
+                                                menuOpen = false
+                                                deleteSongTarget = song
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Added SAF Folders with 3-dots Delete menu
                 if (safFolders.isNotEmpty()) {
                     item {
                         Text(
@@ -221,9 +409,10 @@ fun AddFilesScreen(
                         )
                     }
                     items(safFolders, key = { it.treeUri }) { folder ->
+                        var menuOpen by remember { mutableStateOf(false) }
                         GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Rounded.Folder, contentDescription = null, tint = tokens.emerald)
@@ -236,18 +425,50 @@ fun AddFilesScreen(
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f)
                                 )
-                                IconButton(
-                                    onClick = { onRemoveSafFolder(folder.treeUri) },
-                                    modifier = Modifier.minimumInteractiveComponentSize()
-                                ) {
-                                    Icon(Icons.Rounded.DeleteOutline, contentDescription = stringResource(R.string.action_remove), tint = Color(0xFFFF5E7E))
+                                Box {
+                                    IconButton(
+                                        onClick = { menuOpen = true },
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("saf_folder_more_${folder.treeUri.hashCode()}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.MoreVert,
+                                            contentDescription = stringResource(R.string.files_more_options),
+                                            tint = tokens.textSecondary
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuOpen,
+                                        onDismissRequest = { menuOpen = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = stringResource(R.string.action_delete),
+                                                    color = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.DeleteOutline,
+                                                    contentDescription = stringResource(R.string.action_delete),
+                                                    tint = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            onClick = {
+                                                menuOpen = false
+                                                onRemoveSafFolder(folder.treeUri)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Device Folders Browser
+                // Device Folders Browser with 3-dots Delete / Hide menu
                 if (deviceFolders.isNotEmpty()) {
                     item {
                         Text(
@@ -258,13 +479,14 @@ fun AddFilesScreen(
                         )
                     }
                     items(deviceFolders, key = { it.path }) { folder ->
+                        var menuOpen by remember { mutableStateOf(false) }
                         GlassCard(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             onClick = { onOpenFolderDetail(folder) }
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                modifier = Modifier.fillMaxWidth().padding(start = 14.dp, top = 10.dp, bottom = 10.dp, end = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(Icons.Rounded.Folder, contentDescription = null, tint = tokens.accentPrimary)
@@ -282,6 +504,44 @@ fun AddFilesScreen(
                                         style = MaterialTheme.typography.labelSmall,
                                         color = tokens.textSecondary
                                     )
+                                }
+                                Box {
+                                    IconButton(
+                                        onClick = { menuOpen = true },
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("device_folder_more_${folder.path.hashCode()}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.MoreVert,
+                                            contentDescription = stringResource(R.string.files_more_options),
+                                            tint = tokens.textSecondary
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuOpen,
+                                        onDismissRequest = { menuOpen = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = stringResource(R.string.action_delete),
+                                                    color = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.DeleteOutline,
+                                                    contentDescription = stringResource(R.string.action_delete),
+                                                    tint = Color(0xFFFF5E7E)
+                                                )
+                                            },
+                                            onClick = {
+                                                menuOpen = false
+                                                onExcludeFolder(folder.path, folder.name)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -323,6 +583,14 @@ fun AddFilesScreen(
                 }
             }
         }
+    }
+
+    deleteSongTarget?.let { target ->
+        DeleteConfirmDialog(
+            itemTitle = target.title,
+            onConfirm = { onRemoveImportedSong(target.id) },
+            onDismiss = { deleteSongTarget = null }
+        )
     }
 }
 

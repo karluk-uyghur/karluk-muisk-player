@@ -16,6 +16,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.example.KarlukMp3ProApp
 import com.example.MainActivity
+import com.example.domain.model.RepeatModeOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,6 +60,13 @@ class KarlukPlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
+        player.shuffleModeEnabled = container.preferencesRepository.getShuffleEnabledSync()
+        player.repeatMode = when (container.preferencesRepository.getRepeatModeSync()) {
+            RepeatModeOption.ALL -> Player.REPEAT_MODE_ALL
+            RepeatModeOption.ONE -> Player.REPEAT_MODE_ONE
+            RepeatModeOption.OFF -> Player.REPEAT_MODE_OFF
+        }
+
         player.addListener(object : Player.Listener {
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 serviceScope.launch {
@@ -98,6 +106,21 @@ class KarlukPlaybackService : MediaSessionService() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = mediaSession?.player
+        if (player != null && player.mediaItemCount > 0) {
+            val songId = player.currentMediaItem?.mediaId?.toLongOrNull()
+            if (songId != null) {
+                val queueIds = (0 until player.mediaItemCount).mapNotNull { idx ->
+                    player.getMediaItemAt(idx).mediaId.toLongOrNull()
+                }
+                val container = (application as KarlukMp3ProApp).container
+                container.preferencesRepository.saveLastPlaybackSync(
+                    songId = songId,
+                    positionMs = player.currentPosition.coerceAtLeast(0L),
+                    queueIds = queueIds,
+                    commit = true
+                )
+            }
+        }
         if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
             stopSelf()
         }

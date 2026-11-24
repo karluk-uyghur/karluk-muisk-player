@@ -137,16 +137,14 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `startup intro video raw resource and new action strings exist`() {
+    fun `updated Uyghur spelling and about copyright strings exist`() {
         val base = ApplicationProvider.getApplicationContext<Context>()
         val ugCtx = LocaleHelper.wrapContext(base, AppLanguage.UYGHUR)
         assertEquals("ھەمبەھىرلەش", ugCtx.getString(R.string.action_share))
         assertEquals("قويۇش", ugCtx.getString(R.string.action_play))
         assertEquals("نەشىد نامىنى ئۆزگەرتىش", ugCtx.getString(R.string.rename_nasheed_title))
         assertEquals("كۆرسىتىش ۋە سۈزۈش", ugCtx.getString(R.string.library_menu_title))
-
-        base.resources.openRawResource(R.raw.karluk_intro).use { stream ->
-            assertTrue(stream.read() != -1)
-        }
+        assertEquals("ئىگىسى نامەلۇم نەشىد", ugCtx.getString(R.string.unknown_artist))
+        assertTrue(ugCtx.getString(R.string.about_copyright_notice).isNotBlank())
     }
 }

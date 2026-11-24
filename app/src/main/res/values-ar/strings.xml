@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Karluk MP3 Pro</string>
     <string name="app_subtitle">الإصدار الاحترافي</string>
-    <string name="brand_tagline">الصوت لون الحياة</string>
 
     <!-- Navigation -->
     <string name="nav_home">الرئيسية</string>
@@ -17,7 +16,6 @@
     <string name="onboarding_perm_desc">امنح إذن الصوتيات لاكتشاف الأناشيد تلقائياً أو اختر الأدلة بأمان عبر منتقي النظام.</string>
     <string name="onboarding_grant_button">السماح بالوصول للأناشيد</string>
     <string name="onboarding_pick_folder">إضافة دليل (SAF)</string>
-    <string name="onboarding_skip">المتابعة دون إنترنت</string>
 
     <!-- Home Dashboard -->
     <string name="home_now_playing">قيد التشغيل الآن</string>
@@ -205,6 +203,96 @@
     <string name="storage_cache_size">ذاكرة الصور المؤقتة</string>
     <string name="storage_clear_cache">مسح الذاكرة المؤقتة</string>
     <string name="storage_by_format">الأناشيد حسب الصيغة</string>
-    <string name="about_version">الإصدار 1.0.0 — Ultimate Edition</string>
-    <string name="about_desc">مشغل صوتيات احترافي متعدد اللغات يعمل دون إنترنت، مبني باستخدام Kotlin و Jetpack Compose و AndroidX Media3 ExoPlayer.</string>
+    <string name="about_version_format">الإصدار %1$s (%2$d)</string>
+    <string name="about_desc">مشغل أناشيد احترافي متعدد اللغات يعمل دون إنترنت، مبني باستخدام Kotlin و Jetpack Compose و AndroidX Media3 ExoPlayer.</string>
+    <string name="about_copyright_title">حقوق النشر وإشعار الاستخدام</string>
+    <string name="about_copyright_notice">جميع حقوق النشر لهذا التطبيق محفوظة لمطوره، ولا يجوز العبث به أو تغييره بأي شكل. تم إنشاء هذا التطبيق بدافع الشغف الشخصي، ويُمنع منعاً باتاً استخدامه لأي أغراض ضارة أو سيئة.</string>
+
+    <!-- Text Color & File Menu Enhancements -->
+    <string name="settings_text_color">لون النص</string>
+    <string name="text_color_auto">تلقائي</string>
+    <string name="text_color_white">أبيض ناصع</string>
+    <string name="text_color_cyan">سماوي</string>
+    <string name="text_color_gold">ذهبي</string>
+    <string name="text_color_emerald">زمردي</string>
+    <string name="text_color_rose">وردي</string>
+    <string name="text_color_obsidian">أسود داكن</string>
+    <string name="files_imported_files">ملفات الأناشيد المضافة</string>
+    <string name="files_clear_added_folders">إزالة الأدلة المضافة</string>
+    <string name="files_more_options">خيارات أخرى</string>
+    <string name="playback_speed_label">سرعة التشغيل</string>
+
+    <!-- سلة المحذوفات، اللون اليدوي، التحديثات -->
+    <string name="trash_title">سلة المحذوفات</string>
+    <string name="trash_subtitle_count">%d عناصر</string>
+    <string name="trash_empty_action">إفراغ السلة</string>
+    <string name="trash_restore">استعادة</string>
+    <string name="trash_delete_forever">حذف نهائي</string>
+    <string name="trash_empty_title">سلة المحذوفات فارغة</string>
+    <string name="trash_empty_desc">تظهر الأناشيد والمجلدات المحذوفة هنا قبل حذفها نهائياً من التطبيق والهاتف.</string>
+    <string name="trash_moved_notice">تم النقل إلى سلة المحذوفات</string>
+    <string name="trash_restored_notice">تمت الاستعادة إلى المكتبة</string>
+    <string name="trash_emptied_notice">تم الحذف نهائياً من التطبيق والهاتف</string>
+    <string name="trash_confirm_permanent">حذف نهائي؟</string>
+    <string name="trash_confirm_permanent_desc">سيؤدي هذا إلى إزالة العناصر المحددة نهائياً من التطبيق وذاكرة الهاتف.</string>
+
+    <string name="text_color_manual">اختيار اللون يدوياً</string>
+    <string name="text_color_hue">درجة اللون</string>
+    <string name="text_color_saturation">التشبع</string>
+    <string name="text_color_brightness">السطوع</string>
+    <string name="text_color_preview">معاينة النص • قارلۇق نەشىد</string>
+    <string name="text_color_apply">تطبيق اللون</string>
+    <string name="text_color_reset">إعادة التعيين</string>
+    <string name="text_color_custom_badge">مخصص</string>
+
+    <string name="storage_cache_cleared">تم مسح ذاكرة التخزين المؤقت للصور</string>
+    <string name="storage_largest_tracks">الأناشيد الأكبر حجماً</string>
+
+    <string name="settings_updates">تحديثات التطبيق</string>
+    <string name="update_channel_subtitle">قناة تيليجرام: https://t.me/aplirim2026</string>
+    <string name="update_check_now">التحقق من التحديثات</string>
+    <string name="update_available_title">يتوفر إصدار جديد v%s</string>
+    <string name="update_available_desc">يتوفر إصدار أحدث في قناة التحديثات على تيليجرام.</string>
+    <string name="update_download_telegram">التنزيل من تيليجرام</string>
+    <string name="update_open_channel">فتح قناة التحديثات</string>
+    <string name="update_up_to_date">أنت تستخدم أحدث إصدار (v%s)</string>
+    <string name="update_check_failed">تعذر التحقق من التحديثات الآن</string>
+    <string name="recent_edit_hint">اضغط مطولاً للحذف أو إعادة الترتيب</string>
+
+    <string name="update_dialog_title">تحديث التطبيق</string>
+    <string name="update_checking_msg">جاري الاتصال بقناة تيليجرام للتحقق من أحدث إصدار...</string>
+    <string name="update_check_version">التحقق من إصدار التطبيق</string>
+    <string name="update_download_latest">تنزيل أحدث إصدار للتطبيق</string>
+    <string name="update_current_version_label">الإصدار الحالي: v%s</string>
+    <string name="update_latest_version_label">أحدث إصدار في القناة: v%s</string>
+
+    <string name="history_select_to_delete">تحديد</string>
+    <string name="history_delete_selected">حذف المحدد (%d)</string>
+    <string name="history_clear_all">مسح الكل</string>
+    <string name="history_select_all">تحديد الكل</string>
+    <string name="history_remove_only_desc">إزالة \"%s\" من المستمع إليها حديثاً؟ سيبقى النشيد في التطبيق والهاتف.</string>
+    <string name="history_clear_confirm_desc">مسح سجل المستمع إليها حديثاً بالكامل؟ ستبقى الأناشيد في التطبيق والهاتف.</string>
+    <string name="history_removed_notice">تمت الإزالة من السجل فقط</string>
+    <string name="music_filter_skipped_notice">تم فرز %d ملف (DJ أو معزوفة) إلى مجلد الموسيقى المعزولة</string>
+
+    <string name="settings_share_app">مشاركة هذا التطبيق</string>
+    <string name="settings_share_app_desc">إرسال التطبيق عبر البلوتوث وتيليجرام والتطبيقات الأخرى</string>
+    <string name="share_app_chooser_title">مشاركة Karluk MP3 Pro</string>
+    <string name="share_app_message">Karluk MP3 Pro — مشغل الأناشيد: https://t.me/aplirim2026</string>
+
+    <string name="filtered_music_folder_title">الموسيقى المعزولة</string>
+    <string name="filtered_music_folder_desc">ملفات DJ أو معزوفات مكتشفة • %d</string>
+    <string name="filtered_music_banner_desc">تم عزل الملفات المكتشفة كـ DJ أو معزوفات هنا تلقائياً. يمكنك الاستماع والتحقق، ثم منح الإذن لنقل أي نشيد إلى قائمة الأناشيد العادية.</string>
+    <string name="filtered_music_empty_title">لا توجد ملفات معزولة</string>
+    <string name="filtered_music_empty_desc">لم يتم اكتشاف أي ملفات DJ أو معزوفات حالياً.</string>
+    <string name="filtered_music_move_action">نقل إلى الأناشيد</string>
+    <string name="filtered_music_move_selected">نقل المحدد (%d)</string>
+    <string name="filtered_music_move_permission_title">إذن النقل إلى الأناشيد</string>
+    <string name="filtered_music_move_permission_desc">هل تؤكد أن \"%1$s\" نشيد وليس DJ أو معزوفة وتأذن بنقله إلى قائمة الأناشيد العادية؟</string>
+    <string name="filtered_music_move_batch_permission_desc">هل تأذن بنقل %1$d ملف(ات) محددة إلى قائمة الأناشيد العادية؟</string>
+    <string name="filtered_music_move_confirm">سماح ونقل</string>
+    <string name="filtered_music_moved_notice">تم النقل إلى قائمة الأناشيد العادية</string>
+
+    <string name="about_sharia_notice_title">تنبيه الاستخدام والمسؤولية الدينية</string>
+    <string name="about_sharia_notice_body">هذا التطبيق غير مخصص للاستماع إلى الأغاني أو الموسيقى أو أي محرمات مخالفة للشريعة الإسلامية، وقد زُوّد بميزة خاصة لمنع وعزل الموسيقى والـ DJ والمعازف تلقائياً. وعلى كل مسلم أن يجعل الله رقيباً عليه في كل ما يستمع إليه.</string>
 </resources>

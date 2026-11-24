@@ -1,12 +1,15 @@
 package com.example.core.navigation
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -28,6 +31,9 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -40,6 +46,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,12 +54,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -74,6 +84,7 @@ import com.example.domain.model.ThemeAtmosphere
 import com.example.feature.equalizer.EqualizerScreen
 import com.example.feature.favorites.FavoritesScreen
 import com.example.feature.files.AddFilesScreen
+import com.example.feature.files.FilteredMusicScreen
 import com.example.feature.home.HomeDashboardScreen
 import com.example.feature.library.CollectionDetailScreen
 import com.example.feature.library.LibraryScreen
@@ -87,6 +98,7 @@ import com.example.feature.settings.AboutScreen
 import com.example.feature.settings.SettingsScreen
 import com.example.feature.settings.StorageInfoScreen
 import com.example.feature.settings.ThemeStudioScreen
+import com.example.feature.settings.TrashScreen
 import com.example.feature.splash.OnboardingScreen
 import com.example.feature.splash.SplashScreen
 import com.example.ui.MainViewModel
@@ -118,6 +130,7 @@ fun KarlukNavHost(
 
     val userSettings by viewModel.userSettings.collectAsStateWithLifecycle()
     val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
+    val filteredMusicSongs by viewModel.filteredMusicSongs.collectAsStateWithLifecycle()
     val favoriteSongs by viewModel.favoriteSongs.collectAsStateWithLifecycle()
     val historySongs by viewModel.historySongs.collectAsStateWithLifecycle()
     val albums by viewModel.albums.collectAsStateWithLifecycle()
@@ -126,6 +139,7 @@ fun KarlukNavHost(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val safFolders by viewModel.safFolders.collectAsStateWithLifecycle()
     val excludedFolders by viewModel.excludedFolders.collectAsStateWithLifecycle()
+    val trashItems by viewModel.trashItems.collectAsStateWithLifecycle()
     val searchHistory by viewModel.searchHistory.collectAsStateWithLifecycle()
     val storageStats by viewModel.storageStats.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -133,6 +147,12 @@ fun KarlukNavHost(
     val spectrum by viewModel.spectrumFlow.collectAsStateWithLifecycle()
     val currentLyrics by viewModel.currentLyrics.collectAsStateWithLifecycle()
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
+    val updateInfo by viewModel.updateInfo.collectAsStateWithLifecycle()
+    val isCheckingUpdate by viewModel.isCheckingUpdate.collectAsStateWithLifecycle()
+    val showUpdateDialog by viewModel.showUpdateDialog.collectAsStateWithLifecycle()
+    val updateCheckFailed by viewModel.updateCheckFailed.collectAsStateWithLifecycle()
+    val pendingDeleteRequest by viewModel.pendingDeleteRequest.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
 
     val audioPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
@@ -158,8 +178,19 @@ fun KarlukNavHost(
     ) { result ->
         val granted = result[audioPermission] == true
         hasAudioPermission = granted
+        val onOnboarding = navController.currentDestination?.hasRoute<AppRoute.Onboarding>() == true
         if (granted) {
             viewModel.rescanMedia()
+            if (onOnboarding) {
+                viewModel.setOnboardingCompleted(true)
+                navController.navigate(AppRoute.MainPager) {
+                    popUpTo(AppRoute.Onboarding) { inclusive = true }
+                }
+            }
+        } else if (onOnboarding) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.permission_denied_desc))
+            }
         }
     }
 
@@ -172,6 +203,21 @@ fun KarlukNavHost(
             navController.navigate(AppRoute.MainPager) {
                 popUpTo(AppRoute.Onboarding) { inclusive = true }
             }
+        }
+    }
+
+    val systemDeleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        viewModel.onSystemDeleteResult(result.resultCode == Activity.RESULT_OK)
+    }
+
+    LaunchedEffect(pendingDeleteRequest) {
+        val req = pendingDeleteRequest ?: return@LaunchedEffect
+        runCatching {
+            systemDeleteLauncher.launch(IntentSenderRequest.Builder(req.first).build())
+        }.onFailure {
+            viewModel.onSystemDeleteResult(false)
         }
     }
 
@@ -375,20 +421,18 @@ fun KarlukNavHost(
                                         onLanguageChanged(lang)
                                     },
                                     onRequestAudioPermission = {
-                                        viewModel.setOnboardingCompleted(true)
-                                        permissionLauncher.launch(permissionsToRequest)
-                                        navController.navigate(AppRoute.MainPager) {
-                                            popUpTo(AppRoute.Onboarding) { inclusive = true }
+                                        if (hasAudioPermission) {
+                                            viewModel.setOnboardingCompleted(true)
+                                            viewModel.rescanMedia()
+                                            navController.navigate(AppRoute.MainPager) {
+                                                popUpTo(AppRoute.Onboarding) { inclusive = true }
+                                            }
+                                        } else {
+                                            permissionLauncher.launch(permissionsToRequest)
                                         }
                                     },
                                     onPickSafFolder = {
                                         onboardingSafLauncher.launch(null)
-                                    },
-                                    onContinueOffline = {
-                                        viewModel.setOnboardingCompleted(true)
-                                        navController.navigate(AppRoute.MainPager) {
-                                            popUpTo(AppRoute.Onboarding) { inclusive = true }
-                                        }
                                     }
                                 )
                             }
@@ -422,7 +466,7 @@ fun KarlukNavHost(
                                                 onOpenFavorites = { navigateTopLevelPage(2) },
                                                 onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
                                                 onOpenAddFiles = { navigateTopLevelPage(3) },
-                                                onOpenHistory = { navController.navigate(AppRoute.History) },
+                                                onOpenHistory = { navController.navigate(AppRoute.History(selectToClear = false)) },
                                                 isNightMode = isNightMode,
                                                 onToggleDayNight = {
                                                     viewModel.setThemeAtmosphere(
@@ -435,8 +479,14 @@ fun KarlukNavHost(
                                                 onSeekTo = { viewModel.seekTo(it) },
                                                 onToggleShuffle = { viewModel.toggleShuffle() },
                                                 onCycleRepeat = { viewModel.cycleRepeatMode() },
+                                                onToggleFavorite = { viewModel.toggleFavorite(it) },
+                                                onChangeSpeed = { viewModel.setPlaybackSpeed(it) },
                                                 onPlaySong = { list, idx -> viewModel.playSongs(list, idx) },
-                                                onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) }
+                                                onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
+                                                onDeleteHeroSong = { viewModel.removeSongFromLibrary(it) },
+                                                onDeleteRecentSong = { viewModel.removeSongFromHistory(it) },
+                                                onClearRecentHistory = { viewModel.clearHistory() },
+                                                onMoveRecentSong = { id, delta -> viewModel.moveRecentSong(id, delta) }
                                             )
                                         }
 
@@ -470,7 +520,10 @@ fun KarlukNavHost(
                                                 onDeletePlaylist = { viewModel.deletePlaylist(it) },
                                                 onAddToPlaylist = { pid, ids -> viewModel.addSongsToPlaylist(pid, ids) },
                                                 onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
-                                                onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
+                                                onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) },
+                                                onBatchRemoveFromLibrary = { viewModel.removeSongsFromLibrary(it) },
+                                                filteredMusicCount = filteredMusicSongs.size,
+                                                onOpenFilteredMusic = { navController.navigate(AppRoute.FilteredMusic) }
                                             )
                                         }
 
@@ -492,10 +545,17 @@ fun KarlukNavHost(
                                         }
 
                                         3 -> {
+                                            val importedSongs = remember(allSongs) {
+                                                allSongs.filter {
+                                                    it.folderPath == "saf_imports" ||
+                                                        (it.isSafTrack && it.folderPath == "external")
+                                                }
+                                            }
                                             AddFilesScreen(
                                                 safFolders = safFolders,
                                                 excludedFolders = excludedFolders,
                                                 deviceFolders = folders,
+                                                importedSongs = importedSongs,
                                                 storageStats = storageStats,
                                                 isScanning = isScanning,
                                                 hasAudioPermission = hasAudioPermission,
@@ -504,9 +564,16 @@ fun KarlukNavHost(
                                                 onImportAudioFiles = { uris -> viewModel.importAudioFiles(uris, playImmediately = true) },
                                                 onAddSafFolder = { uri -> viewModel.addSafFolder(uri) },
                                                 onRemoveSafFolder = { viewModel.removeSafFolder(it) },
+                                                onRemoveAllSafFolders = { viewModel.removeAllSafFolders() },
+                                                onExcludeFolder = { path, name -> viewModel.excludeFolder(path, name) },
                                                 onRestoreExcludedFolder = { viewModel.restoreFolder(it) },
+                                                onPlaySong = { list, idx -> viewModel.playSongs(list, idx) },
+                                                onRemoveImportedSong = { viewModel.removeSongFromLibrary(it) },
+                                                onRemoveAllImportedSongs = { viewModel.removeSongsFromLibrary(it) },
                                                 onOpenFolderDetail = { f -> navController.navigate(AppRoute.FolderDetail(f.path, f.name)) },
-                                                onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) }
+                                                onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) },
+                                                filteredMusicCount = filteredMusicSongs.size,
+                                                onOpenFilteredMusic = { navController.navigate(AppRoute.FilteredMusic) }
                                             )
                                         }
 
@@ -514,6 +581,8 @@ fun KarlukNavHost(
                                             SettingsScreen(
                                                 settings = userSettings,
                                                 playbackState = playbackState,
+                                                trashCount = trashItems.size,
+                                                isCheckingUpdate = isCheckingUpdate,
                                                 onSelectLanguage = { lang ->
                                                     LaunchRecreateState.skipIntroOnce = true
                                                     LaunchRecreateState.restoreSettingsTabOnce = true
@@ -525,16 +594,20 @@ fun KarlukNavHost(
                                                     )
                                                 },
                                                 onOpenThemeStudio = { navController.navigate(AppRoute.ThemeStudio) },
+                                                onSelectTextColor = { viewModel.setTextColorOption(it) },
+                                                onSelectCustomTextColor = { viewModel.setCustomTextColorArgb(it) },
                                                 onPickCustomBackground = { uri -> viewModel.setCustomBackground(uri) },
                                                 onClearCustomBackground = { viewModel.clearCustomBackground() },
                                                 onOpenEqualizer = { navController.navigate(AppRoute.Equalizer) },
                                                 onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
                                                 onOpenStorageInfo = { navController.navigate(AppRoute.StorageInfo) },
+                                                onOpenTrash = { navController.navigate(AppRoute.Trash) },
+                                                onCheckUpdates = { viewModel.openUpdateDialogAndCheck() },
                                                 onOpenAbout = { navController.navigate(AppRoute.About) },
                                                 onToggleResumePlayback = { viewModel.setResumePlayback(it) },
                                                 onToggleGapless = { viewModel.setGaplessPlayback(it) },
                                                 onToggleAutoScan = { viewModel.setAutoScanOnStartup(it) },
-                                                onClearHistory = { viewModel.clearHistory() }
+                                                onClearHistory = { navController.navigate(AppRoute.History(selectToClear = true)) }
                                             )
                                         }
                                     }
@@ -561,7 +634,8 @@ fun KarlukNavHost(
                                     onOpenSleepTimer = { navController.navigate(AppRoute.SleepTimer) },
                                     onPickSongBackground = { songId, uri -> viewModel.setSongCustomBackground(songId, uri) },
                                     onClearSongBackground = { songId -> viewModel.clearSongCustomBackground(songId) },
-                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) }
+                                    onRenameSong = { id, newTitle -> viewModel.renameSong(id, newTitle) },
+                                    onDeleteSong = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
 
@@ -624,13 +698,17 @@ fun KarlukNavHost(
                                 )
                             }
 
-                            composable<AppRoute.History> {
+                            composable<AppRoute.History> { backStackEntry ->
+                                val route = backStackEntry.toRoute<AppRoute.History>()
                                 HistoryScreen(
                                     historySongs = historySongs,
                                     playlists = playlists,
                                     playbackState = playbackState,
+                                    initialSelectionMode = route.selectToClear,
                                     onBack = { navController.popBackStack() },
                                     onClearHistory = { viewModel.clearHistory() },
+                                    onRemoveFromHistory = { viewModel.removeSongFromHistory(it) },
+                                    onRemoveSongsFromHistory = { viewModel.removeSongsFromHistory(it) },
                                     onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
                                     onToggleFavorite = { viewModel.toggleFavorite(it) },
                                     onPlayNext = { viewModel.playNext(it) },
@@ -658,6 +736,8 @@ fun KarlukNavHost(
                                     onBack = { navController.popBackStack() },
                                     onSelectAtmosphere = { viewModel.setThemeAtmosphere(it) },
                                     onSelectAccent = { viewModel.setAccentOption(it) },
+                                    onSelectTextColor = { viewModel.setTextColorOption(it) },
+                                    onSelectCustomTextColor = { viewModel.setCustomTextColorArgb(it) },
                                     onChangeGlassOpacity = { viewModel.setGlassOpacity(it) },
                                     onToggleReducedMotion = { viewModel.setReducedMotion(it) },
                                     onToggleLowPower = { viewModel.setLowPowerMode(it) },
@@ -669,13 +749,44 @@ fun KarlukNavHost(
                             composable<AppRoute.StorageInfo> {
                                 StorageInfoScreen(
                                     stats = storageStats,
+                                    allSongs = allSongs,
                                     onBack = { navController.popBackStack() },
-                                    onClearCache = { viewModel.clearArtworkCache() }
+                                    onClearCache = { viewModel.clearArtworkCache() },
+                                    onOpenLibrary = { navigateTopLevelPage(1) },
+                                    onOpenAddFiles = { navigateTopLevelPage(3) },
+                                    onPlaySongs = { list, idx -> viewModel.playSongs(list, idx) },
+                                    onDeleteSong = { viewModel.removeSongFromLibrary(it) }
+                                )
+                            }
+
+                            composable<AppRoute.Trash> {
+                                TrashScreen(
+                                    trashItems = trashItems,
+                                    onBack = { navController.popBackStack() },
+                                    onRestoreItem = { viewModel.restoreTrashItem(it) },
+                                    onDeleteForeverItem = { viewModel.requestDeleteTrashItem(it) },
+                                    onEmptyTrash = { viewModel.requestEmptyTrash() }
+                                )
+                            }
+
+                            composable<AppRoute.FilteredMusic> {
+                                FilteredMusicScreen(
+                                    songs = filteredMusicSongs,
+                                    playbackState = playbackState,
+                                    onBack = { navController.popBackStack() },
+                                    onPreviewSongs = { list, idx -> viewModel.playSongs(list, idx) },
+                                    onApproveMoveToNasheeds = { ids -> viewModel.approveFilteredSongsAsNasheed(ids) },
+                                    onRemoveFromLibrary = { viewModel.removeSongFromLibrary(it) }
                                 )
                             }
 
                             composable<AppRoute.About> {
-                                AboutScreen(onBack = { navController.popBackStack() })
+                                AboutScreen(
+                                    onBack = { navController.popBackStack() },
+                                    updateInfo = updateInfo,
+                                    isCheckingUpdate = isCheckingUpdate,
+                                    onCheckUpdates = { viewModel.openUpdateDialogAndCheck() }
+                                )
                             }
 
                             composable<AppRoute.PlaylistDetail> { backStackEntry ->
@@ -768,6 +879,132 @@ fun KarlukNavHost(
                         }
                     }
                 }
+            }
+
+            if (showUpdateDialog) {
+                val info = updateInfo
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissUpdateBanner() },
+                    containerColor = if (tokens.isLightTheme) Color.White else Color(0xFF0E2150),
+                    title = {
+                        Text(
+                            text = stringResource(R.string.update_dialog_title),
+                            color = tokens.textPrimary
+                        )
+                    },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                text = stringResource(R.string.update_current_version_label, com.example.BuildConfig.VERSION_NAME),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = tokens.accentPrimary
+                            )
+                            Text(
+                                text = com.example.data.update.AppUpdateChecker.TELEGRAM_CHANNEL_URL,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = tokens.textSecondary
+                            )
+
+                            when {
+                                isCheckingUpdate -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        androidx.compose.material3.CircularProgressIndicator(
+                                            modifier = Modifier.padding(2.dp),
+                                            color = tokens.accentPrimary
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.update_checking_msg),
+                                            color = tokens.textSecondary
+                                        )
+                                    }
+                                }
+
+                                updateCheckFailed -> {
+                                    Text(
+                                        text = stringResource(R.string.update_check_failed),
+                                        color = Color(0xFFFF6E8A)
+                                    )
+                                }
+
+                                info != null && info.isUpdateAvailable -> {
+                                    Text(
+                                        text = stringResource(R.string.update_latest_version_label, info.latestVersion),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = tokens.emerald
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.update_available_desc),
+                                        color = tokens.textSecondary
+                                    )
+                                    if (info.releaseNotes.isNotBlank()) {
+                                        Text(
+                                            text = info.releaseNotes,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = tokens.textPrimary,
+                                            maxLines = 5,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                info != null -> {
+                                    Text(
+                                        text = stringResource(R.string.update_up_to_date, com.example.BuildConfig.VERSION_NAME),
+                                        color = tokens.emerald,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (info.releaseNotes.isNotBlank()) {
+                                        Text(
+                                            text = info.releaseNotes,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = tokens.textPrimary,
+                                            maxLines = 4,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        runCatching {
+                                            uriHandler.openUri(
+                                                info?.downloadUrl ?: com.example.data.update.AppUpdateChecker.TELEGRAM_CHANNEL_URL
+                                            )
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = tokens.accentPrimary,
+                                        contentColor = Color(0xFF031126)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().testTag("update_dialog_download_btn")
+                                ) {
+                                    Text(stringResource(R.string.update_download_latest), fontWeight = FontWeight.Bold)
+                                }
+
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = { viewModel.checkForUpdates(manual = true, openDialog = true) },
+                                    enabled = !isCheckingUpdate,
+                                    modifier = Modifier.fillMaxWidth().testTag("update_dialog_check_btn")
+                                ) {
+                                    Text(stringResource(R.string.update_check_version), color = tokens.textPrimary)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.dismissUpdateBanner() }) {
+                            Text(stringResource(R.string.action_cancel), color = tokens.textSecondary)
+                        }
+                    }
+                )
             }
         }
     }

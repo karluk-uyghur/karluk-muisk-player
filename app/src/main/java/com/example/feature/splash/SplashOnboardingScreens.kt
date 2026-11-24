@@ -1,8 +1,19 @@
 package com.example.feature.splash
 
-import android.graphics.Matrix
-import android.net.Uri
-import android.view.TextureView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -14,9 +25,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,42 +44,48 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
-import androidx.media3.common.VideoSize
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.core.designsystem.GlassCard
 import com.example.core.designsystem.KarlukBackground
 import com.example.core.designsystem.KarlukLogoImage
+import com.example.core.designsystem.LanguageFlagBadge
 import com.example.core.designsystem.LocalKarlukTokens
 import com.example.domain.model.AppLanguage
+import java.text.BreakIterator
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.sin
 
 @Composable
 fun SplashScreen(
@@ -75,7 +94,7 @@ fun SplashScreen(
     onNavigateToOnboarding: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
-    val context = LocalContext.current
+    val tokens = LocalKarlukTokens.current
     val latestCompleted by rememberUpdatedState(onboardingCompleted)
     var didNavigate by remember { mutableStateOf(false) }
 
@@ -93,142 +112,302 @@ fun SplashScreen(
         LaunchedEffect(Unit) {
             navigateNext()
         }
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black))
+        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF040916)))
         return
     }
 
-    val exoPlayer = remember(context) {
-        ExoPlayer.Builder(context).build().apply {
-            val videoUri = Uri.parse("android.resource://${context.packageName}/${R.raw.karluk_intro}")
-            setMediaItem(MediaItem.fromUri(videoUri))
-            repeatMode = Player.REPEAT_MODE_OFF
-            playWhenReady = true
-            prepare()
-        }
+    val brandTitle = "Karluk MP3 Pro"
+    val rainbowPalette = remember {
+        listOf(
+            Color(0xFF00E5FF), // Neon Cyan
+            Color(0xFF38BDF8), // Sky Blue
+            Color(0xFF818CF8), // Indigo
+            Color(0xFFC084FC), // Orchid Violet
+            Color(0xFFF472B6), // Rose Pink
+            Color(0xFFFB7185), // Coral
+            Color(0xFFFBBF24), // Amber Gold
+            Color(0xFF34D399), // Emerald Mint
+            Color(0xFF2DD4BF)  // Turquoise
+        )
     }
 
-    var latestVideoSize by remember { mutableStateOf(VideoSize.UNKNOWN) }
-    var visibleVideoFractionH by remember { mutableFloatStateOf(1f) }
-
-    fun applyPhoneAdaptedScale(textureView: TextureView, videoSize: VideoSize) {
-        val viewWidth = textureView.width.toFloat()
-        val viewHeight = textureView.height.toFloat()
-        val videoWidth = videoSize.width.toFloat()
-        val videoHeight = videoSize.height.toFloat()
-        if (viewWidth <= 0f || viewHeight <= 0f || videoWidth <= 0f || videoHeight <= 0f) return
-
-        // On portrait phone screens, adapt the 16:9 intro animation cleanly to fill the central phone viewport
-        // without cropping the logo/title, while seamlessly feathering edges into pure black.
-        val isPortraitScreen = viewHeight > viewWidth
-        val fitWidthScale = viewWidth / videoWidth
-        val fitHeightScale = viewHeight / videoHeight
-        val scale = if (isPortraitScreen && videoWidth > videoHeight) {
-            minOf(fitHeightScale, fitWidthScale * 1.48f)
-        } else {
-            maxOf(fitWidthScale, fitHeightScale)
-        }
-
-        val scaledWidth = videoWidth * scale
-        val scaledHeight = videoHeight * scale
-        visibleVideoFractionH = (scaledHeight / viewHeight).coerceIn(0f, 1f)
-
-        val matrix = Matrix()
-        matrix.setScale(scaledWidth / viewWidth, scaledHeight / viewHeight, viewWidth / 2f, viewHeight / 2f)
-        textureView.setTransform(matrix)
-    }
-
-    val textureView = remember(context) {
-        TextureView(context)
-    }
-
-    DisposableEffect(exoPlayer, textureView) {
-        exoPlayer.setVideoTextureView(textureView)
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) {
-                    navigateNext()
-                }
-            }
-
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                latestVideoSize = videoSize
-                applyPhoneAdaptedScale(textureView, videoSize)
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                navigateNext()
+    val welcomeTitle = stringResource(R.string.onboarding_title)
+    val welcomeCharBoundaries = remember(welcomeTitle) {
+        val iterator = BreakIterator.getCharacterInstance()
+        iterator.setText(welcomeTitle)
+        buildList {
+            var end = iterator.next()
+            while (end != BreakIterator.DONE) {
+                add(end)
+                end = iterator.next()
             }
         }
-        exoPlayer.addListener(listener)
-
-        val layoutListener = android.view.View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            applyPhoneAdaptedScale(textureView, latestVideoSize)
-        }
-        textureView.addOnLayoutChangeListener(layoutListener)
-
-        onDispose {
-            textureView.removeOnLayoutChangeListener(layoutListener)
-            exoPlayer.removeListener(listener)
-            exoPlayer.clearVideoTextureView(textureView)
-            exoPlayer.release()
-        }
     }
 
-    // Safety fallback so headless/codec-less environments never stall on Splash
-    LaunchedEffect(Unit) {
-        delay(12_000L)
+    var logoVisible by remember { mutableStateOf(false) }
+    var visibleCharCount by remember { mutableIntStateOf(0) }
+    var welcomeDividerVisible by remember { mutableStateOf(false) }
+    var welcomeVisibleCharCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(welcomeTitle) {
+        logoVisible = true
+        delay(160L)
+        for (i in 1..brandTitle.length) {
+            visibleCharCount = i
+            delay(56L)
+        }
+        delay(140L)
+        welcomeDividerVisible = true
+        for (i in 1..welcomeCharBoundaries.size) {
+            welcomeVisibleCharCount = i
+            delay(42L)
+        }
+        delay(950L)
         navigateNext()
     }
 
-    // Pure #000000 full-bleed phone container with no player chrome or Skip text
+    val infiniteTransition = rememberInfiniteTransition(label = "mp3_intro")
+    val eqPhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1350, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "eq_phase"
+    )
+    val pulseRadius by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulse_radius"
+    )
+    val haloSpinAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "halo_spin"
+    )
+
+    val logoScale by animateFloatAsState(
+        targetValue = if (logoVisible) 1f else 0.70f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "logo_scale"
+    )
+    val logoAlpha by animateFloatAsState(
+        targetValue = if (logoVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "logo_alpha"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF0E295E),
+                        Color(0xFF060E24),
+                        Color(0xFF02040C)
+                    )
+                )
+            )
+            .safeDrawingPadding(),
+        contentAlignment = Alignment.Center
     ) {
-        AndroidView(
-            factory = { textureView },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        // Seamless vertical black edge blend so the video integrates natively into the screen without a visible box
+        // Multi-color expanding pulse aura rings behind the centerpiece
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val videoH = h * visibleVideoFractionH
-            if (videoH > 0f && videoH < h) {
-                val topEdge = (h - videoH) / 2f
-                val bottomEdge = topEdge + videoH
-                val feather = (videoH * 0.14f).coerceAtLeast(24f)
+            val center = Offset(size.width / 2f, size.height * 0.40f)
+            val baseR = 68.dp.toPx()
+            val ringColors = listOf(
+                Color(0xFF00E5FF),
+                Color(0xFFC084FC),
+                Color(0xFF34D399)
+            )
+            for (ring in 0..2) {
+                val p = (pulseRadius + ring / 3f) % 1f
+                val r = baseR + p * 106.dp.toPx()
+                val alpha = (1f - p) * 0.34f
+                drawCircle(
+                    color = ringColors[ring].copy(alpha = alpha),
+                    radius = r,
+                    center = center,
+                    style = Stroke(width = 2.2.dp.toPx())
+                )
+            }
+        }
 
-                drawRect(
-                    color = Color.Black,
-                    topLeft = Offset.Zero,
-                    size = Size(w, topEdge)
-                )
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.Black, Color.Transparent),
-                        startY = topEdge,
-                        endY = topEdge + feather
-                    ),
-                    topLeft = Offset(0f, topEdge),
-                    size = Size(w, feather)
-                )
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black),
-                        startY = bottomEdge - feather,
-                        endY = bottomEdge
-                    ),
-                    topLeft = Offset(0f, bottomEdge - feather),
-                    size = Size(w, feather)
-                )
-                drawRect(
-                    color = Color.Black,
-                    topLeft = Offset(0f, bottomEdge),
-                    size = Size(w, h - bottomEdge)
-                )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .scale(logoScale)
+                    .alpha(logoAlpha)
+            ) {
+                // Rotating multi-color spectrum glow halo framing the Karluk emblem
+                Canvas(modifier = Modifier.size(144.dp)) {
+                    val strokeW = 3.5.dp.toPx()
+                    val radius = (size.minDimension - strokeW) / 2f
+                    withTransform({
+                        rotate(degrees = haloSpinAngle, pivot = center)
+                    }) {
+                        drawCircle(
+                            brush = Brush.sweepGradient(rainbowPalette + rainbowPalette.first()),
+                            radius = radius,
+                            center = center,
+                            style = Stroke(width = strokeW)
+                        )
+                    }
+                }
+                KarlukLogoImage(size = 118.dp)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Multi-colored animated MP3 equalizer spectrum bars with bright floating peak dots
+            Canvas(
+                modifier = Modifier
+                    .width(236.dp)
+                    .height(40.dp)
+            ) {
+                val barCount = 21
+                val gap = 4.dp.toPx()
+                val barW = (size.width - gap * (barCount - 1)) / barCount
+                val centerIdx = (barCount - 1) / 2f
+                for (i in 0 until barCount) {
+                    val distWeight = 1f - (kotlin.math.abs(i - centerIdx) / (centerIdx + 1f)) * 0.50f
+                    val wave = 0.36f + 0.64f * ((sin(eqPhase + i * 0.52f) + 1f) * 0.5f)
+                    val barH = (size.height * 0.86f * wave * distWeight).coerceAtLeast(5.dp.toPx())
+                    val left = i * (barW + gap)
+                    val top = (size.height - barH) / 2f
+
+                    val barTopColor = rainbowPalette[i % rainbowPalette.size]
+                    val barBottomColor = rainbowPalette[(i + 2) % rainbowPalette.size].copy(alpha = 0.72f)
+
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(barTopColor, barBottomColor),
+                            startY = top,
+                            endY = top + barH
+                        ),
+                        topLeft = Offset(left, top),
+                        size = Size(barW, barH),
+                        cornerRadius = CornerRadius(barW / 2f, barW / 2f)
+                    )
+
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.85f),
+                        radius = (barW * 0.34f).coerceAtLeast(1.4f),
+                        center = Offset(left + barW / 2f, (top - 3.dp.toPx()).coerceAtLeast(2f))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            // Multi-colored letter-by-letter spring reveal of "Karluk MP3 Pro" strictly LTR
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.testTag("splash_brand_letters")
+                ) {
+                    brandTitle.forEachIndexed { index, ch ->
+                        val shown = index < visibleCharCount
+                        val charAlpha by animateFloatAsState(
+                            targetValue = if (shown) 1f else 0f,
+                            animationSpec = tween(durationMillis = 190),
+                            label = "char_alpha_$index"
+                        )
+                        val charOffsetY by animateDpAsState(
+                            targetValue = if (shown) 0.dp else 16.dp,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "char_offset_$index"
+                        )
+                        val letterTint = rainbowPalette[index % rainbowPalette.size]
+                        Text(
+                            text = ch.toString(),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.2.sp
+                            ),
+                            color = letterTint,
+                            modifier = Modifier
+                                .offset(y = charOffsetY)
+                                .alpha(charAlpha)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            AnimatedVisibility(
+                visible = welcomeDividerVisible,
+                enter = fadeIn(tween(260)) + slideInVertically(tween(260)) { it / 2 }
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .width(124.dp)
+                            .height(2.5.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color(0xFF00E5FF),
+                                        Color(0xFFC084FC),
+                                        Color(0xFFFBBF24),
+                                        Color(0xFF34D399),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    val revealedWelcome = if (welcomeVisibleCharCount <= 0) {
+                        ""
+                    } else {
+                        val endIdx = welcomeCharBoundaries[
+                            (welcomeVisibleCharCount - 1).coerceIn(0, welcomeCharBoundaries.lastIndex)
+                        ]
+                        welcomeTitle.substring(0, endIdx)
+                    }
+                    Text(
+                        text = revealedWelcome,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF38BDF8),
+                                    Color(0xFF34D399),
+                                    Color(0xFFFBBF24),
+                                    Color(0xFFF472B6),
+                                    Color(0xFFC084FC)
+                                )
+                            )
+                        ),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("splash_welcome_text")
+                    )
+                }
             }
         }
     }
@@ -239,8 +418,7 @@ fun OnboardingScreen(
     currentLanguage: AppLanguage,
     onSelectLanguage: (AppLanguage) -> Unit,
     onRequestAudioPermission: () -> Unit,
-    onPickSafFolder: () -> Unit,
-    onContinueOffline: () -> Unit
+    onPickSafFolder: () -> Unit
 ) {
     val tokens = LocalKarlukTokens.current
     KarlukBackground {
@@ -269,7 +447,7 @@ fun OnboardingScreen(
                     textAlign = TextAlign.Center
                 )
 
-                // Language quick selector on Onboarding
+                // Language quick selector on Onboarding with Country/Nation Flags
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
                         modifier = Modifier.padding(14.dp),
@@ -280,33 +458,39 @@ fun OnboardingScreen(
                             style = MaterialTheme.typography.titleMedium,
                             color = tokens.textPrimary
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            AppLanguage.entries.forEach { lang ->
-                                val selected = lang == currentLanguage
-                                GlassCard(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .minimumInteractiveComponentSize()
-                                        .testTag("onboarding_lang_${lang.code}"),
-                                    shape = RoundedCornerShape(12.dp),
-                                    highlighted = selected,
-                                    onClick = { onSelectLanguage(lang) }
-                                ) {
-                                    Box(
+                        AppLanguage.entries.chunked(2).forEach { rowLangs ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                rowLangs.forEach { lang ->
+                                    val selected = lang == currentLanguage
+                                    GlassCard(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                                        contentAlignment = Alignment.Center
+                                            .weight(1f)
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("onboarding_lang_${lang.code}"),
+                                        shape = RoundedCornerShape(14.dp),
+                                        highlighted = selected,
+                                        onClick = { onSelectLanguage(lang) }
                                     ) {
-                                        Text(
-                                            text = lang.nativeName,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = if (selected) tokens.accentPrimary else tokens.textPrimary,
-                                            maxLines = 1
-                                        )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 12.dp, horizontal = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            LanguageFlagBadge(language = lang)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = lang.nativeName,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = if (selected) tokens.accentPrimary else tokens.textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -379,19 +563,6 @@ fun OnboardingScreen(
                             )
                         }
                     }
-                }
-
-                TextButton(
-                    onClick = onContinueOffline,
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("onboarding_continue_button")
-                ) {
-                    Text(
-                        text = stringResource(R.string.onboarding_skip),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = tokens.accentPrimary
-                    )
                 }
             }
         }

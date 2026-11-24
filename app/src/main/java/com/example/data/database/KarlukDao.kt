@@ -35,6 +35,15 @@ interface KarlukDao {
     @Query("DELETE FROM songs WHERE folderPath = :folderPath AND isSafTrack = 1")
     suspend fun deleteSafSongsInFolder(folderPath: String)
 
+    @Query("SELECT id FROM songs WHERE isUserApprovedNasheed = 1")
+    suspend fun getUserApprovedSongIdsOnce(): List<Long>
+
+    @Query("UPDATE songs SET isFilteredMusic = 0, isUserApprovedNasheed = 1 WHERE id IN (:songIds)")
+    suspend fun approveFilteredSongsAsNasheed(songIds: List<Long>)
+
+    @Query("UPDATE songs SET isFilteredMusic = 1 WHERE id = :songId AND isUserApprovedNasheed = 0")
+    suspend fun markSongAsFilteredMusic(songId: Long)
+
     // Favorites
     @Query("SELECT * FROM favorites ORDER BY addedAt DESC")
     fun observeFavorites(): Flow<List<FavoriteEntity>>
@@ -155,4 +164,43 @@ interface KarlukDao {
 
     @Query("DELETE FROM song_custom_titles WHERE songId = :songId")
     suspend fun deleteSongCustomTitle(songId: Long)
+
+    // Song queries for folder / permanent delete
+    @Query("SELECT * FROM songs WHERE folderPath = :folderPath")
+    suspend fun getSongsInFolderOnce(folderPath: String): List<SongEntity>
+
+    @Query("DELETE FROM songs WHERE folderPath = :folderPath")
+    suspend fun deleteSongsInFolder(folderPath: String)
+
+    // History ordering support
+    @Query("UPDATE history SET lastPlayedAt = :timestamp WHERE songId = :songId")
+    suspend fun updateHistoryTimestamp(songId: Long, timestamp: Long)
+
+    @Query("SELECT * FROM history ORDER BY lastPlayedAt DESC")
+    suspend fun getHistoryOnce(): List<HistoryEntity>
+
+    @Query("DELETE FROM history WHERE songId = :songId")
+    suspend fun deleteHistoryForSong(songId: Long)
+
+    @Query("DELETE FROM playlist_song_cross_ref WHERE songId = :songId")
+    suspend fun removeSongFromAllPlaylists(songId: Long)
+
+    // Recycle Bin (Trash)
+    @Query("SELECT * FROM trash_items ORDER BY trashedAt DESC")
+    fun observeTrashItems(): Flow<List<TrashItemEntity>>
+
+    @Query("SELECT * FROM trash_items ORDER BY trashedAt DESC")
+    suspend fun getTrashItemsOnce(): List<TrashItemEntity>
+
+    @Query("SELECT refId FROM trash_items WHERE itemType = 'SONG'")
+    fun observeTrashedSongIds(): Flow<List<Long>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTrashItem(item: TrashItemEntity)
+
+    @Query("DELETE FROM trash_items WHERE trashId = :trashId")
+    suspend fun deleteTrashItem(trashId: Long)
+
+    @Query("DELETE FROM trash_items")
+    suspend fun clearAllTrash()
 }

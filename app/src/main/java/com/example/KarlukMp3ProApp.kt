@@ -11,7 +11,7 @@ import com.example.playback.controller.PlaybackController
 import com.example.playback.effects.AudioEffectsManager
 
 class AppContainer(context: Context) {
-    private val appContext = context.applicationContext
+    val appContext: Context = context.applicationContext
 
     val database = KarlukDatabase.getInstance(appContext)
     val preferencesRepository = UserPreferencesRepository(appContext)

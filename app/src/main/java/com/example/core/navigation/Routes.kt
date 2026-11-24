@@ -44,7 +44,7 @@ sealed interface AppRoute {
     data object Queue : AppRoute
 
     @Serializable
-    data object History : AppRoute
+    data class History(val selectToClear: Boolean = false) : AppRoute
 
     @Serializable
     data object SleepTimer : AppRoute
@@ -57,6 +57,12 @@ sealed interface AppRoute {
 
     @Serializable
     data object About : AppRoute
+
+    @Serializable
+    data object Trash : AppRoute
+
+    @Serializable
+    data object FilteredMusic : AppRoute
 
     @Serializable
     data class PlaylistDetail(val playlistId: Long) : AppRoute

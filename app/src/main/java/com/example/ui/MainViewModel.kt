@@ -1,15 +1,22 @@
 package com.example.ui
 
+import android.content.IntentSender
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.AppContainer
+import com.example.BuildConfig
+import com.example.R
+import com.example.localization.LocaleHelper
 import com.example.data.database.ExcludedFolderEntity
 import com.example.data.database.SafFolderEntity
+import com.example.data.database.TrashItemEntity
+import com.example.data.update.AppUpdateChecker
 import com.example.domain.model.AccentOption
 import com.example.domain.model.Album
 import com.example.domain.model.AppLanguage
+import com.example.domain.model.AppUpdateInfo
 import com.example.domain.model.Artist
 import com.example.domain.model.AudioEffectsState
 import com.example.domain.model.EqualizerPreset
@@ -19,6 +26,7 @@ import com.example.domain.model.PlaybackState
 import com.example.domain.model.Playlist
 import com.example.domain.model.Song
 import com.example.domain.model.StorageStats
+import com.example.domain.model.TextColorOption
 import com.example.domain.model.ThemeAtmosphere
 import com.example.domain.model.UserSettings
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +45,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(private val container: AppContainer) : ViewModel() {
@@ -51,6 +60,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.Eagerly, prefs.getInitialSettingsSync())
 
     val allSongs: StateFlow<List<Song>> = repo.allSongsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val filteredMusicSongs: StateFlow<List<Song>> = repo.filteredMusicSongsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val favoriteSongs: StateFlow<List<Song>> = repo.favoriteSongsFlow
@@ -77,6 +89,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     val excludedFolders: StateFlow<List<ExcludedFolderEntity>> = repo.excludedFoldersFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val trashItems: StateFlow<List<TrashItemEntity>> = repo.trashItemsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val searchHistory: StateFlow<List<String>> = repo.searchHistoryFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -97,6 +112,21 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
+    val updateInfo: StateFlow<AppUpdateInfo?> = _updateInfo.asStateFlow()
+
+    private val _isCheckingUpdate = MutableStateFlow(false)
+    val isCheckingUpdate: StateFlow<Boolean> = _isCheckingUpdate.asStateFlow()
+
+    private val _showUpdateDialog = MutableStateFlow(false)
+    val showUpdateDialog: StateFlow<Boolean> = _showUpdateDialog.asStateFlow()
+
+    private val _updateCheckFailed = MutableStateFlow(false)
+    val updateCheckFailed: StateFlow<Boolean> = _updateCheckFailed.asStateFlow()
+
+    private val _pendingDeleteRequest = MutableStateFlow<Pair<IntentSender, List<TrashItemEntity>>?>(null)
+    val pendingDeleteRequest: StateFlow<Pair<IntentSender, List<TrashItemEntity>>?> = _pendingDeleteRequest.asStateFlow()
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val events: SharedFlow<String> = _events.asSharedFlow()
@@ -121,26 +151,57 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             effects.applySavedPrefs(saved)
         }
 
-        // Auto-scan and optionally resume last track on startup
+        // Restore last played Nasheed immediately and also re-check after optional startup scan
         viewModelScope.launch {
             if (initialSetupDone) return@launch
             initialSetupDone = true
             val settings = prefs.userSettingsFlow.first()
-            if (settings.autoScanOnStartup) {
+            restoreLastPlaybackIfNeeded(settings)
+            if (settings.onboardingCompleted && settings.autoScanOnStartup) {
                 runScanInternal(silent = true)
+                restoreLastPlaybackIfNeeded(settings)
             }
-            if (settings.resumePlaybackOnLaunch && settings.lastSongId != -1L && player.playbackState.value.currentSong == null) {
-                val songs = repo.allSongsFlow.first()
-                val idx = songs.indexOfFirst { it.id == settings.lastSongId }
-                if (idx >= 0) {
-                    player.playSongs(
-                        songs = songs,
-                        startIndex = idx,
-                        autoPlay = false,
-                        startPositionMs = settings.lastPositionMs
-                    )
-                }
+            checkForUpdates(manual = false)
+        }
+    }
+
+    private suspend fun restoreLastPlaybackIfNeeded(settings: UserSettings) {
+        if (!settings.resumePlaybackOnLaunch || player.playbackState.value.currentSong != null) return
+        val targetSongId = settings.lastSongId.takeIf { it != -1L }
+            ?: prefs.getLastSongIdSync().takeIf { it != -1L }
+            ?: return
+        val targetPos = if (settings.lastPositionMs > 0L) settings.lastPositionMs else prefs.getLastPositionMsSync()
+
+        val librarySongs = repo.allSongsFlow.first()
+        val libraryMap = librarySongs.associateBy { it.id }
+        val savedQueueIds = prefs.getLastQueueIdsSync()
+        val savedQueue = savedQueueIds.mapNotNull { libraryMap[it] }
+
+        val targetQueue: List<Song>
+        val targetIdx: Int
+        when {
+            savedQueue.any { it.id == targetSongId } -> {
+                targetQueue = savedQueue
+                targetIdx = savedQueue.indexOfFirst { it.id == targetSongId }
             }
+            librarySongs.any { it.id == targetSongId } -> {
+                targetQueue = librarySongs
+                targetIdx = librarySongs.indexOfFirst { it.id == targetSongId }
+            }
+            else -> {
+                val singleSong = repo.getSongById(targetSongId) ?: return
+                targetQueue = listOf(singleSong)
+                targetIdx = 0
+            }
+        }
+
+        if (targetIdx >= 0) {
+            player.playSongs(
+                songs = targetQueue,
+                startIndex = targetIdx,
+                autoPlay = false,
+                startPositionMs = targetPos
+            )
         }
     }
 
@@ -156,7 +217,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         try {
             val count = repo.rescanAllMedia()
             if (!silent) {
-                _events.tryEmit("$count tracks synced")
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit(localizedCtx.getString(R.string.home_tracks_count, count))
             }
         } finally {
             _isScanning.value = false
@@ -168,7 +230,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
             _isScanning.value = true
             try {
                 val added = repo.addSafFolder(treeUri)
-                _events.tryEmit("+$added tracks")
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit("+" + localizedCtx.getString(R.string.home_tracks_count, added))
             } finally {
                 _isScanning.value = false
             }
@@ -176,8 +239,28 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun removeSafFolder(treeUri: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repo.removeSafFolder(treeUri)
+        viewModelScope.launch {
+            runCatching {
+                val removedIds = withContext(Dispatchers.IO) { repo.removeSafFolder(treeUri) }
+                if (removedIds.isNotEmpty()) {
+                    player.removeSongsFromQueueByIds(removedIds.toSet())
+                }
+            }
+        }
+    }
+
+    fun removeAllSafFolders() {
+        val current = safFolders.value
+        if (current.isEmpty()) return
+        viewModelScope.launch {
+            runCatching {
+                val removedIds = withContext(Dispatchers.IO) {
+                    current.flatMap { repo.removeSafFolder(it.treeUri) }.toSet()
+                }
+                if (removedIds.isNotEmpty()) {
+                    player.removeSongsFromQueueByIds(removedIds)
+                }
+            }
         }
     }
 
@@ -186,11 +269,28 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             _isScanning.value = true
             try {
-                val imported = repo.importAudioFiles(uris)
-                if (imported.isNotEmpty() && playImmediately) {
-                    player.playSongs(imported, 0, autoPlay = true)
+                val outcome = repo.importAudioFiles(uris)
+                if (outcome.songs.isNotEmpty() && playImmediately) {
+                    player.playSongs(outcome.songs, 0, autoPlay = true)
                 }
-                _events.tryEmit("+${imported.size}")
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                when {
+                    outcome.songs.isNotEmpty() && outcome.skippedMusicCount > 0 -> {
+                        _events.tryEmit(
+                            "+${outcome.songs.size} • " +
+                                localizedCtx.getString(R.string.music_filter_skipped_notice, outcome.skippedMusicCount)
+                        )
+                    }
+                    outcome.songs.isNotEmpty() -> {
+                        _events.tryEmit("+${outcome.songs.size}")
+                    }
+                    outcome.skippedMusicCount > 0 -> {
+                        _events.tryEmit(
+                            localizedCtx.getString(R.string.music_filter_skipped_notice, outcome.skippedMusicCount)
+                        )
+                    }
+                }
+            } catch (_: Throwable) {
             } finally {
                 _isScanning.value = false
             }
@@ -199,7 +299,12 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     fun playExternalUri(uri: Uri) {
         viewModelScope.launch {
-            val song = repo.importSingleExternalUri(uri) ?: return@launch
+            val song = runCatching { repo.importSingleExternalUri(uri) }.getOrNull()
+            if (song == null) {
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit(localizedCtx.getString(R.string.music_filter_skipped_notice, 1))
+                return@launch
+            }
             player.playSongs(listOf(song), 0, autoPlay = true)
         }
     }
@@ -276,8 +381,29 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun clearHistory() {
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) { repo.clearHistory() }
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit(localizedCtx.getString(R.string.history_removed_notice))
+            }
+        }
+    }
+
+    fun removeSongFromHistory(songId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.clearHistory()
+            repo.removeSongFromHistory(songId)
+            val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+            _events.tryEmit(localizedCtx.getString(R.string.history_removed_notice))
+        }
+    }
+
+    fun removeSongsFromHistory(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.removeSongsFromHistory(songIds)
+            val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+            _events.tryEmit(localizedCtx.getString(R.string.history_removed_notice))
         }
     }
 
@@ -312,20 +438,106 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun excludeFolder(folderPath: String, folderName: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repo.excludeFolder(folderPath, folderName)
+        viewModelScope.launch {
+            runCatching {
+                val removedIds = withContext(Dispatchers.IO) {
+                    repo.excludeFolder(folderPath, folderName)
+                }
+                if (removedIds.isNotEmpty()) {
+                    player.removeSongsFromQueueByIds(removedIds.toSet())
+                }
+            }
         }
     }
 
     fun restoreFolder(folderPath: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.restoreFolder(folderPath)
+            runCatching { repo.restoreFolder(folderPath) }
+        }
+    }
+
+    fun approveFilteredSongsAsNasheed(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    repo.approveFilteredSongsAsNasheed(songIds)
+                }
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit(localizedCtx.getString(R.string.filtered_music_moved_notice))
+            }
         }
     }
 
     fun removeSongFromLibrary(songId: Long) {
+        removeSongsFromLibrary(listOf(songId))
+    }
+
+    fun removeSongsFromLibrary(songIds: List<Long>) {
+        if (songIds.isEmpty()) return
+        val distinctIds = songIds.distinct()
+        viewModelScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    repo.removeSongsFromLibrary(distinctIds)
+                }
+                player.removeSongsFromQueueByIds(distinctIds.toSet())
+            }
+        }
+    }
+
+    fun moveRecentSong(songId: Long, delta: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            repo.removeSongFromLibrary(songId)
+            runCatching { repo.moveRecentSong(songId, delta) }
+        }
+    }
+
+    fun restoreTrashItem(item: TrashItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                repo.restoreTrashItem(item)
+                val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+                _events.tryEmit(localizedCtx.getString(R.string.trash_restored_notice))
+            }
+        }
+    }
+
+    fun requestDeleteTrashItem(item: TrashItemEntity) {
+        requestDeleteTrashItems(listOf(item))
+    }
+
+    fun requestEmptyTrash() {
+        val currentItems = trashItems.value
+        if (currentItems.isNotEmpty()) {
+            requestDeleteTrashItems(currentItems)
+        }
+    }
+
+    private fun requestDeleteTrashItems(items: List<TrashItemEntity>) {
+        if (items.isEmpty() || _pendingDeleteRequest.value != null) return
+        viewModelScope.launch {
+            runCatching {
+                val plan = withContext(Dispatchers.IO) { repo.preparePermanentDelete(items) }
+                if (plan.intentSender != null) {
+                    _pendingDeleteRequest.value = plan.intentSender to plan.itemsToFinalize
+                }
+            }.onFailure {
+                runCatching {
+                    withContext(Dispatchers.IO) { repo.finalizePermanentDelete(items) }
+                }
+            }
+        }
+    }
+
+    fun onSystemDeleteResult(granted: Boolean) {
+        val pending = _pendingDeleteRequest.value
+        _pendingDeleteRequest.value = null
+        if (granted && pending != null) {
+            viewModelScope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) { repo.finalizePermanentDelete(pending.second) }
+                }
+            }
         }
     }
 
@@ -350,7 +562,43 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     fun clearArtworkCache() {
         viewModelScope.launch(Dispatchers.IO) {
             repo.clearArtworkCache()
+            val localizedCtx = LocaleHelper.wrapContext(container.appContext, userSettings.value.language)
+            _events.tryEmit(localizedCtx.getString(R.string.storage_cache_cleared))
         }
+    }
+
+    fun openUpdateDialogAndCheck() {
+        _showUpdateDialog.value = true
+        checkForUpdates(manual = true, openDialog = true)
+    }
+
+    fun checkForUpdates(manual: Boolean = true, openDialog: Boolean = manual) {
+        if (_isCheckingUpdate.value) return
+        if (openDialog) {
+            _showUpdateDialog.value = true
+        }
+        viewModelScope.launch {
+            _isCheckingUpdate.value = true
+            _updateCheckFailed.value = false
+            try {
+                val result = AppUpdateChecker.checkTelegramChannelForUpdate(BuildConfig.VERSION_NAME)
+                val info = result.getOrNull()
+                if (info != null) {
+                    _updateInfo.value = info
+                    if (info.isUpdateAvailable) {
+                        _showUpdateDialog.value = true
+                    }
+                } else {
+                    _updateCheckFailed.value = true
+                }
+            } finally {
+                _isCheckingUpdate.value = false
+            }
+        }
+    }
+
+    fun dismissUpdateBanner() {
+        _showUpdateDialog.value = false
     }
 
     // Equalizer & Audio Effects
@@ -415,6 +663,14 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
 
     fun setAccentOption(accent: AccentOption) {
         viewModelScope.launch { prefs.setAccentOption(accent) }
+    }
+
+    fun setTextColorOption(option: TextColorOption) {
+        viewModelScope.launch { prefs.setTextColorOption(option) }
+    }
+
+    fun setCustomTextColorArgb(argb: Long) {
+        viewModelScope.launch { prefs.setCustomTextColorArgb(argb) }
     }
 
     fun setGlassOpacity(opacity: Float) {
